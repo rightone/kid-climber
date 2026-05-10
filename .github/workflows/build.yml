@@ -71,6 +71,18 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && npm ci
 
+      - name: Update version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "Setting version to: $VERSION"
+          # Update package.json
+          cd frontend
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          # Update tauri.conf.json
+          cd src-tauri
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" tauri.conf.json
+        shell: bash
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
