@@ -3,14 +3,17 @@ import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { useDesignStore } from '../../stores/designStore';
+import { useInteractionStore } from '../../stores/interactionStore';
 import ComponentRenderer from './components/ComponentRenderer';
 import SceneHelpers from './components/SceneHelpers';
+import InteractionSystem from './systems/InteractionSystem';
 
 // 场景控制器
 const SceneController: React.FC = () => {
   const { gl } = useThree();
   const controlsRef = useRef<any>(null);
   const { editor, setEditorState, clearSelection } = useDesignStore();
+  const { interaction, setMode } = useInteractionStore();
   
   // 处理点击空白区域取消选择
   const handlePointerMissed = useCallback(() => {
@@ -38,16 +41,19 @@ const SceneController: React.FC = () => {
       switch (e.key.toLowerCase()) {
         case 'v':
           if (!e.ctrlKey && !e.metaKey) {
+            setMode('select');
             setEditorState({ activeTool: 'select' });
           }
           break;
         case 'm':
           if (!e.ctrlKey && !e.metaKey) {
+            setMode('move');
             setEditorState({ activeTool: 'move' });
           }
           break;
         case 'r':
           if (!e.ctrlKey && !e.metaKey) {
+            setMode('rotate');
             setEditorState({ activeTool: 'rotate' });
           }
           break;
@@ -103,15 +109,16 @@ const SceneController: React.FC = () => {
           break;
         case 'delete':
         case 'backspace':
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            const selected = store.editor.selectedComponents;
-            selected.forEach(id => store.removeComponent(id));
+          if (editor.selectedComponents.length > 0) {
+            editor.selectedComponents.forEach(id => store.removeComponent(id));
             store.clearSelection();
           }
           break;
         case 'escape':
           store.clearSelection();
+          const { cancelPlace, setMode: setInteractionMode } = useInteractionStore.getState();
+          cancelPlace();
+          setInteractionMode('select');
           break;
         case '1':
           setEditorState({ viewMode: 'realistic' });
@@ -130,7 +137,7 @@ const SceneController: React.FC = () => {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editor, setEditorState]);
+  }, [editor, setEditorState, setMode]);
   
   return (
     <OrbitControls
@@ -141,6 +148,7 @@ const SceneController: React.FC = () => {
       maxPolarAngle={Math.PI / 2}
       minDistance={10}
       maxDistance={1000}
+      enabled={interaction.mode !== 'place' && !interaction.isDragging}
     />
   );
 };
@@ -164,7 +172,7 @@ const SceneLighting: React.FC = () => {
         shadow-camera-top={300}
         shadow-camera-bottom={-300}
         shadow-camera-near={0.5}
-        shadow-camera-father={500}
+        shadow-camera-far={500}
       />
       
       {/* 填充光 */}
@@ -193,12 +201,11 @@ const LoadingFallback: React.FC = () => {
 
 // 主场景组件
 const Scene3D: React.FC = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { interaction } = useInteractionStore();
   
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
       <Canvas
-        ref={canvasRef}
         shadows
         camera={{
           position: [150, 150, 150],
@@ -224,6 +231,9 @@ const Scene3D: React.FC = () => {
           <SceneHelpers />
         </Suspense>
         
+        {/* 交互系统 */}
+        <InteractionSystem />
+        
         {/* 组件渲染 */}
         <Suspense fallback={<LoadingFallback />}>
           <ComponentRenderer />
@@ -232,6 +242,45 @@ const Scene3D: React.FC = () => {
         {/* 环境贴图 */}
         <Environment preset="city" />
       </Canvas>
+      
+      {/* 模式提示 */}
+      {interaction.mode === 'place' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(82, 196, 26, 0.9)',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: 4,
+            fontSize: 14,
+            fontWeight: 'bold',
+          }}
+        >
+          🎯 点击放置组件 | ESC 取消
+        </div>
+      )}
+      
+      {interaction.mode === 'move' && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(24, 144, 255, 0.9)',
+            color: '#fff',
+            padding: '8px 16px',
+            borderRadius: 4,
+            fontSize: 14,
+            fontWeight: 'bold',
+          }}
+        >
+          ✋ 移动模式 | 拖拽移动组件
+        </div>
+      )}
       
       {/* 视图控制提示 */}
       <div
@@ -248,10 +297,12 @@ const Scene3D: React.FC = () => {
           pointerEvents: 'none',
         }}
       >
-        <div>🖱️ 左键拖拽: 旋转视角</div>
+        <div>🖱️ 左键: 选择/放置</div>
+        <div>🖱️ 右键拖拽: 旋转视角</div>
         <div>🖱️ 滚轮: 缩放</div>
-        <div>🖱️ 右键拖拽: 平移</div>
-        <div>⇧ Shift+点击: 多选</div>
+        <div>⌨️ V: 选择模式</div>
+        <div>⌨️ M: 移动模式</div>
+        <div>⌨️ ESC: 取消</div>
       </div>
       
       {/* 坐标显示 */}
@@ -268,31 +319,8 @@ const Scene3D: React.FC = () => {
           lineHeight: 1.6,
         }}
       >
-        <div>视角: 透视图</div>
-        <div>网格: 10cm</div>
-      </div>
-      
-      {/* 快捷键提示 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          background: 'rgba(0, 0, 0, 0.7)',
-          color: '#fff',
-          padding: '12px 16px',
-          borderRadius: 8,
-          fontSize: 12,
-          lineHeight: 1.6,
-        }}
-      >
-        <div>⌨️ V: 选择</div>
-        <div>⌨️ M: 移动</div>
-        <div>⌨️ R: 旋转</div>
-        <div>⌨️ G: 网格</div>
-        <div>⌨️ L: 连接点</div>
-        <div>⌨️ Ctrl+Z/Y: 撤销/重做</div>
-        <div>⌨️ Ctrl+C/V: 复制/粘贴</div>
+        <div>模式: {interaction.mode === 'select' ? '选择' : interaction.mode === 'place' ? '放置' : '移动'}</div>
+        <div>网格: {interaction.gridSize}cm</div>
       </div>
     </div>
   );

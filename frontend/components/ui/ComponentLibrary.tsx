@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { Input, Tag, Collapse, Tooltip, Empty, Spin, Badge, Button, Space } from 'antd';
-import { SearchOutlined, AppstoreOutlined, BarsOutlined } from '@ant-design/icons';
+import React, { useState, useMemo } from 'react';
+import { Input, Tag, Collapse, Tooltip, Empty, Button, Space, Switch } from 'antd';
+import { SearchOutlined, AppstoreOutlined, BarsOutlined, AimOutlined } from '@ant-design/icons';
 import { componentDefinitions, searchComponents, getCategories } from '../../stores/componentLibrary';
-import { useDesignStore } from '../../stores/designStore';
+import { useInteractionStore } from '../../stores/interactionStore';
 import type { ComponentDefinition } from '../../types';
 
 const { Panel } = Collapse;
@@ -10,18 +10,16 @@ const { Panel } = Collapse;
 // 组件预览卡片
 interface ComponentCardProps {
   component: ComponentDefinition;
-  onSelect: (componentId: string) => void;
-  onDragStart: (e: React.DragEvent, componentId: string) => void;
   compact?: boolean;
 }
 
 const ComponentCard: React.FC<ComponentCardProps> = React.memo(({ 
   component, 
-  onSelect, 
-  onDragStart, 
   compact = false 
 }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { startPlace } = useInteractionStore();
+  const { interaction } = useInteractionStore();
   
   // 获取组件图标
   const getComponentIcon = () => {
@@ -48,23 +46,28 @@ const ComponentCard: React.FC<ComponentCardProps> = React.memo(({
     return specs.join(' ');
   };
   
+  // 处理点击 - 进入放置模式
+  const handleClick = () => {
+    startPlace(component.id);
+  };
+  
+  const isPlacing = interaction.mode === 'place' && interaction.placeState.componentId === component.id;
+  
   return (
     <div
       style={{
         display: 'flex',
         alignItems: 'center',
         padding: compact ? 6 : 10,
-        border: isHovered ? '2px solid #1890ff' : '1px solid #f0f0f0',
+        border: isPlacing ? '2px solid #52c41a' : isHovered ? '2px solid #1890ff' : '1px solid #f0f0f0',
         borderRadius: 6,
         marginBottom: 6,
-        cursor: 'grab',
+        cursor: 'pointer',
         transition: 'all 0.2s',
-        background: isHovered ? '#e6f7ff' : '#fff',
+        background: isPlacing ? '#f6ffed' : isHovered ? '#e6f7ff' : '#fff',
         boxShadow: isHovered ? '0 2px 8px rgba(24,144,255,0.15)' : 'none',
       }}
-      draggable
-      onDragStart={(e) => onDragStart(e, component.id)}
-      onClick={() => onSelect(component.id)}
+      onClick={handleClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -72,7 +75,7 @@ const ComponentCard: React.FC<ComponentCardProps> = React.memo(({
         style={{
           width: compact ? 32 : 40,
           height: compact ? 32 : 40,
-          background: '#f5f5f5',
+          background: isPlacing ? '#f6ffed' : '#f5f5f5',
           borderRadius: 4,
           display: 'flex',
           alignItems: 'center',
@@ -103,14 +106,8 @@ const ComponentCard: React.FC<ComponentCardProps> = React.memo(({
         )}
       </div>
       
-      {!compact && (
-        <Tooltip title="连接点数量">
-          <Badge
-            count={component.connectionPoints.length}
-            style={{ backgroundColor: '#52c41a', fontSize: 10 }}
-            size="small"
-          />
-        </Tooltip>
+      {isPlacing && (
+        <Tag color="success">放置中</Tag>
       )}
     </div>
   );
@@ -122,8 +119,7 @@ ComponentCard.displayName = 'ComponentCard';
 const ComponentLibrary: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'category' | 'list'>('category');
-  const [loading, setLoading] = useState(false);
-  const { addComponent } = useDesignStore();
+  const { interaction, setSnapToGrid, setGridSize } = useInteractionStore();
   
   // 获取分类
   const categories = useMemo(() => getCategories(), []);
@@ -147,36 +143,8 @@ const ComponentLibrary: React.FC = () => {
     return groups;
   }, [displayComponents, categories]);
   
-  // 处理组件拖拽开始
-  const handleDragStart = useCallback((e: React.DragEvent, componentId: string) => {
-    e.dataTransfer.setData('componentId', componentId);
-    e.dataTransfer.effectAllowed = 'copy';
-  }, []);
-  
-  // 处理组件点击（添加到场景中心）
-  const handleComponentClick = useCallback((componentId: string) => {
-    setLoading(true);
-    
-    // 创建新组件
-    const newComponent = {
-      instanceId: `inst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      componentId,
-      position: [
-        Math.random() * 40 - 20,
-        0,
-        Math.random() * 40 - 20,
-      ] as [number, number, number],
-      rotation: [0, 0, 0] as [number, number, number],
-      scale: [1, 1, 1] as [number, number, number],
-    };
-    
-    addComponent(newComponent);
-    
-    setTimeout(() => setLoading(false), 100);
-  }, [addComponent]);
-  
   // 渲染组件列表
-  const renderComponentList = useCallback((components: ComponentDefinition[]) => {
+  const renderComponentList = (components: ComponentDefinition[]) => {
     if (components.length === 0) {
       return (
         <Empty
@@ -191,14 +159,12 @@ const ComponentLibrary: React.FC = () => {
       <ComponentCard
         key={component.id}
         component={component}
-        onSelect={handleComponentClick}
-        onDragStart={handleDragStart}
       />
     ));
-  }, [handleComponentClick, handleDragStart]);
+  };
   
   // 渲染分类视图
-  const renderCategoryView = useCallback(() => {
+  const renderCategoryView = () => {
     return (
       <Collapse defaultActiveKey={categories.map(c => c.key)} ghost>
         {categories.map(category => {
@@ -226,12 +192,12 @@ const ComponentLibrary: React.FC = () => {
         })}
       </Collapse>
     );
-  }, [categories, groupedComponents, renderComponentList]);
+  };
   
   // 渲染列表视图
-  const renderListView = useCallback(() => {
+  const renderListView = () => {
     return renderComponentList(displayComponents);
-  }, [displayComponents, renderComponentList]);
+  };
   
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -275,9 +241,47 @@ const ComponentLibrary: React.FC = () => {
       
       {/* 组件列表 */}
       <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px' }}>
-        <Spin spinning={loading}>
-          {viewMode === 'category' ? renderCategoryView() : renderListView()}
-        </Spin>
+        {viewMode === 'category' ? renderCategoryView() : renderListView()}
+      </div>
+      
+      {/* 吸附设置 */}
+      <div
+        style={{
+          padding: '10px 12px',
+          borderTop: '1px solid #f0f0f0',
+          background: '#fafafa',
+        }}
+      >
+        <div style={{ marginBottom: 8, fontSize: 12, fontWeight: 'bold' }}>
+          <AimOutlined /> 吸附设置
+        </div>
+        
+        <Space direction="vertical" style={{ width: '100%' }} size={4}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12 }}>网格吸附</span>
+            <Switch
+              size="small"
+              checked={interaction.snapToGrid}
+              onChange={setSnapToGrid}
+            />
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 12 }}>网格大小</span>
+            <Space size={4}>
+              {[5, 10, 20, 50].map(size => (
+                <Button
+                  key={size}
+                  size="small"
+                  type={interaction.gridSize === size ? 'primary' : 'default'}
+                  onClick={() => setGridSize(size)}
+                >
+                  {size}
+                </Button>
+              ))}
+            </Space>
+          </div>
+        </Space>
       </div>
       
       {/* 使用说明 */}
@@ -290,9 +294,11 @@ const ComponentLibrary: React.FC = () => {
           lineHeight: 1.6,
         }}
       >
-        <div>💡 点击组件添加到设计</div>
-        <div>💡 拖拽组件到3D视图放置</div>
-        <div>💡 支持按名称、类型搜索</div>
+        <div>💡 点击组件进入放置模式</div>
+        <div>💡 在3D视图点击放置组件</div>
+        <div>💡 按 ESC 取消放置</div>
+        <div>💡 按 V 切换选择模式</div>
+        <div>💡 按 M 切换移动模式</div>
       </div>
     </div>
   );
