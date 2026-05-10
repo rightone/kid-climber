@@ -69,7 +69,7 @@ const initialState: InteractionState = {
   showPreview: true,
   snapToGrid: true,
   snapToComponent: true,
-  gridSize: 10,
+  gridSize: 20,  // 默认网格大小：20cm
 };
 
 export const useInteractionStore = create<InteractionStore>((set, get) => ({

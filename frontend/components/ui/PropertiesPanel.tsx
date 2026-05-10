@@ -3,8 +3,61 @@ import { Card, Form, InputNumber, Button, Space, Typography, Divider, Tag, Empty
 import { DeleteOutlined, CopyOutlined, RotateLeftOutlined, RotateRightOutlined } from '@ant-design/icons';
 import { useDesignStore } from '../../stores/designStore';
 import { getComponentById } from '../../stores/componentLibrary';
+import type { ComponentColor } from '../../types';
+import { COMPONENT_COLORS } from '../../types';
 
 const { Text, Title } = Typography;
+
+// 颜色选择器组件
+const ColorSelector: React.FC<{
+  value?: ComponentColor;
+  onChange: (color: ComponentColor) => void;
+  componentId: string;
+}> = ({ value, onChange, componentId }) => {
+  // 接头只能用黑色
+  const [type] = componentId.split('_');
+  const isConnector = type === 'connector' || type === 'elbow' || type === 'tee' || type === 'cross';
+  
+  if (isConnector) {
+    return (
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            background: COMPONENT_COLORS.black.hex,
+            border: '2px solid #1890ff',
+          }}
+          title="黑色（接头固定颜色）"
+        />
+        <Text type="secondary" style={{ fontSize: 12, lineHeight: '24px' }}>
+          接头统一使用黑色
+        </Text>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ display: 'flex', gap: 8 }}>
+      {(Object.keys(COMPONENT_COLORS) as ComponentColor[]).filter(c => c !== 'black').map((color) => (
+        <div
+          key={color}
+          onClick={() => onChange(color)}
+          style={{
+            width: 24,
+            height: 24,
+            borderRadius: 4,
+            background: COMPONENT_COLORS[color].hex,
+            border: value === color ? '2px solid #1890ff' : '2px solid #d9d9d9',
+            cursor: 'pointer',
+          }}
+          title={COMPONENT_COLORS[color].name}
+        />
+      ))}
+    </div>
+  );
+};
 
 const PropertiesPanel: React.FC = () => {
   const { components, editor, removeComponent, updateComponent, clearSelection, duplicateSelected } = useDesignStore();
@@ -114,6 +167,11 @@ const PropertiesPanel: React.FC = () => {
     updateComponent(component.instanceId, { rotation: newRotation });
   };
   
+  // 处理颜色变化
+  const handleColorChange = (color: ComponentColor) => {
+    updateComponent(component.instanceId, { color });
+  };
+  
   // 获取组件图标
   const getComponentIcon = () => {
     switch (definition.type) {
@@ -174,6 +232,15 @@ const PropertiesPanel: React.FC = () => {
         </div>
       </Card>
       
+      {/* 颜色选择 */}
+      <Card size="small" title="颜色" style={{ marginBottom: 16 }}>
+        <ColorSelector
+          value={component.color}
+          onChange={handleColorChange}
+          componentId={component.componentId}
+        />
+      </Card>
+      
       {/* 位置控制 */}
       <Card size="small" title="位置" style={{ marginBottom: 16 }}>
         <Form layout="vertical" size="small">
@@ -184,7 +251,7 @@ const PropertiesPanel: React.FC = () => {
                 onChange={(v) => handlePositionChange('x', v)}
                 style={{ width: '100%' }}
                 addonAfter="cm"
-                step={10}
+                step={20}
               />
             </Form.Item>
             <Form.Item label="Y" style={{ flex: 1, marginBottom: 8 }}>
@@ -193,7 +260,7 @@ const PropertiesPanel: React.FC = () => {
                 onChange={(v) => handlePositionChange('y', v)}
                 style={{ width: '100%' }}
                 addonAfter="cm"
-                step={10}
+                step={20}
               />
             </Form.Item>
             <Form.Item label="Z" style={{ flex: 1, marginBottom: 8 }}>
@@ -202,7 +269,7 @@ const PropertiesPanel: React.FC = () => {
                 onChange={(v) => handlePositionChange('z', v)}
                 style={{ width: '100%' }}
                 addonAfter="cm"
-                step={10}
+                step={20}
               />
             </Form.Item>
           </Space>

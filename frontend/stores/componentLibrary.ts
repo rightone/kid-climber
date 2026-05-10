@@ -1,20 +1,20 @@
 import type { ComponentDefinition } from '../types';
 
-// 预设组件库
+// 预设组件库 - 根据实际攀爬架规格定义
 export const componentDefinitions: ComponentDefinition[] = [
-  // ============ 基础管件 ============
+  // ============ 管件 ============
   {
-    id: 'pipe_30cm',
-    name: '30cm直管',
+    id: 'pipe_35cm',
+    name: '35cm直管',
     type: 'pipe',
     category: 'basic',
-    length: 30,
+    length: 35,
     diameter: 2.5,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'start', position: [0, 0, -15], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'end', position: [0, 0, 15], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
+      { id: 'start', position: [0, 0, -17.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'end', position: [0, 0, 17.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
@@ -31,39 +31,24 @@ export const componentDefinitions: ComponentDefinition[] = [
       { id: 'end', position: [0, 0, 7.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
     ],
   },
-  {
-    id: 'pipe_10cm',
-    name: '10cm直管',
-    type: 'pipe',
-    category: 'basic',
-    length: 10,
-    diameter: 2.5,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'start', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'end', position: [0, 0, 5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'pipe_60cm',
-    name: '60cm直管',
-    type: 'pipe',
-    category: 'basic',
-    length: 60,
-    diameter: 2.5,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'start', position: [0, 0, -30], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'end', position: [0, 0, 30], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
-    ],
-  },
   
-  // ============ 连接件 ============
+  // ============ 接头（通） ============
   {
-    id: 'elbow_90deg',
-    name: '90度弯头',
+    id: 'connector_straight',
+    name: '一字接头（直通）',
+    type: 'elbow',
+    category: 'connector',
+    diameter: 2.5,
+    modelPath: '',
+    thumbnailPath: '',
+    connectionPoints: [
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output', position: [0, 0, 2.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
+    ],
+  },
+  {
+    id: 'connector_L',
+    name: 'L型接头（90度）',
     type: 'elbow',
     category: 'connector',
     angle: 90,
@@ -71,13 +56,27 @@ export const componentDefinitions: ComponentDefinition[] = [
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output', position: [5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
-    id: 'elbow_45deg',
-    name: '45度弯头',
+    id: 'connector_T',
+    name: 'T型接头（三通）',
+    type: 'tee',
+    category: 'connector',
+    diameter: 2.5,
+    modelPath: '',
+    thumbnailPath: '',
+    connectionPoints: [
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output1', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output2', position: [-2.5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
+    ],
+  },
+  {
+    id: 'connector_45deg',
+    name: '45度接头',
     type: 'elbow',
     category: 'connector',
     angle: 45,
@@ -85,131 +84,102 @@ export const componentDefinitions: ComponentDefinition[] = [
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output', position: [3.54, 0, 3.54], direction: [0.707, 0, 0.707], type: 'socket', compatible: ['socket'] },
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output', position: [1.77, 0, 1.77], direction: [0.707, 0, 0.707], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
-    id: 'tee_3way',
-    name: '三通接头',
+    id: 'connector_3way',
+    name: '三向接头',
     type: 'tee',
     category: 'connector',
     diameter: 2.5,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output1', position: [5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'output2', position: [-5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output1', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output2', position: [0, 2.5, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
-    id: 'cross_4way',
-    name: '四通接头',
+    id: 'connector_4way',
+    name: '四向接头',
     type: 'cross',
     category: 'connector',
     diameter: 2.5,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output1', position: [5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'output2', position: [-5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'output3', position: [0, 0, 5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output1', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output2', position: [-2.5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output3', position: [0, 0, 2.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
-    id: 'elbow_90deg_vertical',
-    name: '90度垂直弯头',
-    type: 'elbow',
-    category: 'connector',
-    angle: 90,
-    diameter: 2.5,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output', position: [0, 5, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'tee_y_shape',
-    name: 'Y型三通',
-    type: 'tee',
+    id: 'connector_cross',
+    name: '十字接头',
+    type: 'cross',
     category: 'connector',
     diameter: 2.5,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'input', position: [0, 0, -5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'output1', position: [3.54, 0, 3.54], direction: [0.707, 0, 0.707], type: 'socket', compatible: ['socket'] },
-      { id: 'output2', position: [-3.54, 0, 3.54], direction: [-0.707, 0, 0.707], type: 'socket', compatible: ['socket'] },
+      { id: 'input1', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'input2', position: [0, 0, 2.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
+      { id: 'output1', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output2', position: [-2.5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
+    ],
+  },
+  {
+    id: 'connector_5way',
+    name: '五向接头',
+    type: 'cross',
+    category: 'connector',
+    diameter: 2.5,
+    modelPath: '',
+    thumbnailPath: '',
+    connectionPoints: [
+      { id: 'input', position: [0, 0, -2.5], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
+      { id: 'output1', position: [2.5, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output2', position: [-2.5, 0, 0], direction: [-1, 0, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'output3', position: [0, 0, 2.5], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
+      { id: 'output4', position: [0, 2.5, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   
-  // ============ 平台类 ============
+  // ============ 板子 ============
   {
-    id: 'platform_small',
-    name: '小平台 (30x30cm)',
+    id: 'board_40x40',
+    name: '40×40cm板',
     type: 'platform',
     category: 'platform',
-    width: 30,
-    height: 30,
+    width: 40,
+    height: 40,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'corner1', position: [-15, 0, -15], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner2', position: [15, 0, -15], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner3', position: [15, 0, 15], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner4', position: [-15, 0, 15], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner1', position: [-20, 0, -20], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner2', position: [20, 0, -20], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner3', position: [20, 0, 20], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner4', position: [-20, 0, 20], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
-    id: 'platform_medium',
-    name: '中平台 (60x60cm)',
+    id: 'board_40x20',
+    name: '40×20cm板',
     type: 'platform',
     category: 'platform',
-    width: 60,
-    height: 60,
+    width: 40,
+    height: 20,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'corner1', position: [-30, 0, -30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner2', position: [30, 0, -30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner3', position: [30, 0, 30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner4', position: [-30, 0, 30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'platform_large',
-    name: '大平台 (90x90cm)',
-    type: 'platform',
-    category: 'platform',
-    width: 90,
-    height: 90,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'corner1', position: [-45, 0, -45], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner2', position: [45, 0, -45], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner3', position: [45, 0, 45], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner4', position: [-45, 0, 45], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'platform_rectangular',
-    name: '长平台 (120x60cm)',
-    type: 'platform',
-    category: 'platform',
-    width: 120,
-    height: 60,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'corner1', position: [-60, 0, -30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner2', position: [60, 0, -30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner3', position: [60, 0, 30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'corner4', position: [-60, 0, 30], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner1', position: [-20, 0, -10], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner2', position: [20, 0, -10], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner3', position: [20, 0, 10], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'corner4', position: [-20, 0, 10], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   
@@ -219,13 +189,13 @@ export const componentDefinitions: ComponentDefinition[] = [
     name: '秋千',
     type: 'swing',
     category: 'accessory',
-    width: 30,
+    width: 40,
     height: 200,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
-      { id: 'top_left', position: [-15, 100, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'top_right', position: [15, 100, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'top_left', position: [-20, 100, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
+      { id: 'top_right', position: [20, 100, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
     ],
   },
   {
@@ -247,84 +217,13 @@ export const componentDefinitions: ComponentDefinition[] = [
     name: '绳梯',
     type: 'rope_ladder',
     category: 'accessory',
-    width: 30,
+    width: 40,
     height: 180,
     modelPath: '',
     thumbnailPath: '',
     connectionPoints: [
       { id: 'top', position: [0, 90, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
       { id: 'bottom', position: [0, -90, 0], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'climbing_wall',
-    name: '攀爬墙',
-    type: 'platform',
-    category: 'accessory',
-    width: 60,
-    height: 120,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'top_left', position: [-30, 60, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'top_right', position: [30, 60, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'bottom_left', position: [-30, -60, 0], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'bottom_right', position: [30, -60, 0], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'monkey_bars',
-    name: '猴杆',
-    type: 'pipe',
-    category: 'accessory',
-    length: 120,
-    diameter: 3,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'start', position: [0, 0, -60], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
-      { id: 'end', position: [0, 0, 60], direction: [0, 0, 1], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  
-  // ============ 结构件 ============
-  {
-    id: 'support_bracket',
-    name: '支撑架',
-    type: 'elbow',
-    category: 'connector',
-    angle: 90,
-    diameter: 2.5,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'vertical', position: [0, -10, 0], direction: [0, -1, 0], type: 'socket', compatible: ['socket'] },
-      { id: 'horizontal', position: [10, 0, 0], direction: [1, 0, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'base_plate',
-    name: '底座',
-    type: 'platform',
-    category: 'platform',
-    width: 20,
-    height: 20,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'center', position: [0, 0, 0], direction: [0, 1, 0], type: 'socket', compatible: ['socket'] },
-    ],
-  },
-  {
-    id: 'cap',
-    name: '端盖',
-    type: 'elbow',
-    category: 'connector',
-    diameter: 2.5,
-    modelPath: '',
-    thumbnailPath: '',
-    connectionPoints: [
-      { id: 'socket', position: [0, 0, 0], direction: [0, 0, -1], type: 'socket', compatible: ['socket'] },
     ],
   },
 ];
@@ -362,11 +261,23 @@ export const searchComponents = (query: string): ComponentDefinition[] => {
 // 获取组件分类
 export const getCategories = (): { key: string; name: string; icon: string; color: string }[] => {
   return [
-    { key: 'basic', name: '基础管件', icon: '🔧', color: '#4ecdc4' },
-    { key: 'connector', name: '连接件', icon: '🔗', color: '#45b7d1' },
-    { key: 'platform', name: '平台类', icon: '⬜', color: '#96ceb4' },
+    { key: 'basic', name: '管件', icon: '🔧', color: '#4ecdc4' },
+    { key: 'connector', name: '接头', icon: '🔗', color: '#45b7d1' },
+    { key: 'platform', name: '板子', icon: '⬜', color: '#96ceb4' },
     { key: 'accessory', name: '附件', icon: '🎠', color: '#feca57' },
   ];
+};
+
+// 尺寸规格说明
+export const SIZE_SPECS = {
+  grid: 20,           // 网格尺寸：20cm
+  pipe35: 35,         // 35cm管
+  pipe15: 15,         // 15cm管
+  connector: 5,       // 接头长度：5cm
+  board40x40: { width: 40, height: 40 },  // 40x40板
+  board40x20: { width: 40, height: 20 },  // 40x20板
+  // 计算说明：35cm管 + 2个接头 = 35 + 5 = 40cm = 2个网格
+  // 15cm管 + 1个接头 = 15 + 2.5 = 17.5cm ≈ 1个网格
 };
 
 export default componentDefinitions;

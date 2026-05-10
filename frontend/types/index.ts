@@ -26,6 +26,18 @@ export interface ComponentDefinition {
   properties?: Record<string, any>; // 其他属性
 }
 
+// 组件颜色
+export type ComponentColor = 'red' | 'blue' | 'green' | 'yellow' | 'black';
+
+// 颜色配置
+export const COMPONENT_COLORS: Record<ComponentColor, { name: string; hex: string }> = {
+  red: { name: '红色', hex: '#ff4d4f' },
+  blue: { name: '蓝色', hex: '#1890ff' },
+  green: { name: '绿色', hex: '#52c41a' },
+  yellow: { name: '黄色', hex: '#faad14' },
+  black: { name: '黑色', hex: '#333333' },
+};
+
 // 组件实例（设计中的具体组件）
 export interface ComponentInstance {
   instanceId: string; // 实例ID
@@ -34,6 +46,7 @@ export interface ComponentInstance {
   position: [number, number, number]; // 位置坐标（厘米）
   rotation: [number, number, number]; // 旋转角度（度）
   scale: [number, number, number]; // 缩放比例
+  color?: ComponentColor; // 颜色
   properties?: Record<string, any>; // 实例特定属性
 }
 

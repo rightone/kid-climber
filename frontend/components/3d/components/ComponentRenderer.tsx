@@ -3,6 +3,25 @@ import * as THREE from 'three';
 import { useDesignStore } from '../../../stores/designStore';
 import { getComponentById } from '../../../stores/componentLibrary';
 import { createComponentGeometry } from '../utils/geometryUtils';
+import type { ComponentColor } from '../../../types';
+import { COMPONENT_COLORS } from '../../../types';
+
+// 获取组件颜色
+const getComponentColor = (componentId: string, color?: ComponentColor): string => {
+  // 如果指定了颜色，使用指定颜色
+  if (color && COMPONENT_COLORS[color]) {
+    return COMPONENT_COLORS[color].hex;
+  }
+  
+  // 接头统一使用黑色
+  const [type] = componentId.split('_');
+  if (type === 'connector' || type === 'elbow' || type === 'tee' || type === 'cross') {
+    return COMPONENT_COLORS.black.hex;
+  }
+  
+  // 默认颜色
+  return COMPONENT_COLORS.blue.hex;
+};
 
 // 组件材质
 const createMaterial = (color: string, isSelected: boolean, isHovered: boolean): THREE.MeshStandardMaterial => {
@@ -15,28 +34,6 @@ const createMaterial = (color: string, isSelected: boolean, isHovered: boolean):
   });
 };
 
-// 获取组件颜色
-const getComponentColor = (componentId: string): string => {
-  const [type] = componentId.split('_');
-  
-  switch (type) {
-    case 'pipe':
-      return '#4ecdc4';
-    case 'elbow':
-    case 'tee':
-    case 'cross':
-      return '#45b7d1';
-    case 'platform':
-      return '#96ceb4';
-    case 'swing':
-    case 'slide':
-    case 'rope':
-      return '#feca57';
-    default:
-      return '#95a5a6';
-  }
-};
-
 // 单个组件渲染
 interface ClimberComponentProps {
   instanceId: string;
@@ -44,6 +41,7 @@ interface ClimberComponentProps {
   position: [number, number, number];
   rotation: [number, number, number];
   scale: [number, number, number];
+  color?: ComponentColor;
   isSelected: boolean;
   isHovered: boolean;
   showConnections: boolean;
@@ -53,11 +51,12 @@ interface ClimberComponentProps {
 }
 
 const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
-  instanceId: _instanceId,
+  instanceId,
   componentId,
   position,
   rotation,
   scale,
+  color,
   isSelected,
   isHovered,
   showConnections,
@@ -78,9 +77,9 @@ const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
   
   // 创建材质
   const material = useMemo(() => {
-    const color = getComponentColor(componentId);
-    return createMaterial(color, isSelected, isHovered);
-  }, [componentId, isSelected, isHovered]);
+    const componentColor = getComponentColor(componentId, color);
+    return createMaterial(componentColor, isSelected, isHovered);
+  }, [componentId, color, isSelected, isHovered]);
   
   // 转换旋转角度为弧度
   const rotationRad = useMemo(() => [
@@ -98,7 +97,6 @@ const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
       
       return (
         <group key={index} position={point.position}>
-          {/* 连接点指示器 */}
           <mesh>
             {isSocket ? (
               <torusGeometry args={[1.5, 0.3, 8, 16]} />
@@ -111,25 +109,18 @@ const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
               opacity={0.6}
             />
           </mesh>
-          
-          {/* 连接方向指示 */}
-          <arrowHelper
-            args={[
-              new THREE.Vector3(...point.direction),
-              new THREE.Vector3(0, 0, 0),
-              3,
-              isSocket ? '#ff6b6b' : '#52c41a',
-              1,
-              0.5,
-            ]}
-          />
         </group>
       );
     });
   }, [showConnections, definition]);
   
   return (
-    <group position={position} rotation={rotationRad as [number, number, number]} scale={scale}>
+    <group 
+      position={position} 
+      rotation={rotationRad as [number, number, number]} 
+      scale={scale}
+      userData={{ instanceId }}
+    >
       {/* 主体网格 */}
       <mesh
         ref={meshRef}
@@ -140,6 +131,7 @@ const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
         onPointerOut={onPointerOut}
         castShadow
         receiveShadow
+        userData={{ instanceId }}
       />
       
       {/* 选中时的边框 */}
@@ -179,7 +171,6 @@ const ConnectionLines: React.FC = () => {
       
       if (!sourcePoint || !targetPoint) return null;
       
-      // 计算世界坐标
       const sourcePos = new THREE.Vector3(
         sourceComponent.position[0] + sourcePoint.position[0],
         sourceComponent.position[1] + sourcePoint.position[1],
@@ -225,10 +216,8 @@ const ComponentRenderer: React.FC = () => {
     e.stopPropagation();
     
     if (e.shiftKey) {
-      // 多选
       toggleSelectComponent(instanceId);
     } else {
-      // 单选
       useDesignStore.getState().clearSelection();
       selectComponent(instanceId);
     }
@@ -246,7 +235,6 @@ const ComponentRenderer: React.FC = () => {
   
   return (
     <group>
-      {/* 渲染所有组件 */}
       {components.map((component) => (
         <ClimberComponent
           key={component.instanceId}
@@ -255,6 +243,7 @@ const ComponentRenderer: React.FC = () => {
           position={component.position}
           rotation={component.rotation}
           scale={component.scale}
+          color={component.color}
           isSelected={editor.selectedComponents.includes(component.instanceId)}
           isHovered={editor.hoveredComponent === component.instanceId}
           showConnections={editor.showConnections}
@@ -264,7 +253,6 @@ const ComponentRenderer: React.FC = () => {
         />
       ))}
       
-      {/* 渲染连接线 */}
       <ConnectionLines />
     </group>
   );
