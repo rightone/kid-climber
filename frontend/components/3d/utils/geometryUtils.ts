@@ -608,7 +608,29 @@ export const createComponentGeometry = (
     );
   }
   
-  // 附件
+  // 附件 - 使用完整componentId匹配
+  if (componentId === 'swing' || componentId.startsWith('swing')) {
+    return createSwingGeometry(
+      componentDef.width || 40,
+      componentDef.height || 200
+    );
+  }
+  
+  if (componentId === 'slide' || componentId.startsWith('slide')) {
+    return createSlideGeometry(
+      componentDef.width || 40,
+      componentDef.height || 150
+    );
+  }
+  
+  if (componentId === 'rope_ladder' || componentId.startsWith('rope')) {
+    return createRopeLadderGeometry(
+      componentDef.width || 40,
+      componentDef.height || 180
+    );
+  }
+  
+  // 通用附件处理
   switch (type) {
     case 'swing':
       return createSwingGeometry(

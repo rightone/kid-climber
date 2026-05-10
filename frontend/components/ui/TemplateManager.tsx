@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Modal, Form, Input, Select, Button, message, Typography, List, Tag, Popconfirm } from 'antd';
+import { Modal, Form, Input, Select, Button, message, Typography, List, Tag } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useDesignStore } from '../../stores/designStore';
 
@@ -17,7 +17,7 @@ interface DesignTemplate {
   thumbnail?: string;
 }
 
-// 预设模板
+// 预设模板 - 使用正确的组件ID
 const defaultTemplates: DesignTemplate[] = [
   {
     id: 'simple_frame',
@@ -25,14 +25,14 @@ const defaultTemplates: DesignTemplate[] = [
     description: '一个简单的矩形框架结构',
     category: '基础',
     components: [
-      { componentId: 'pipe_30cm', position: [0, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [0, 0, 30], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 30], rotation: [0, 0, 0] },
-      { componentId: 'elbow_90deg', position: [0, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'elbow_90deg', position: [30, 0, 0], rotation: [0, 90, 0] },
-      { componentId: 'elbow_90deg', position: [0, 0, 30], rotation: [0, -90, 0] },
-      { componentId: 'elbow_90deg', position: [30, 0, 30], rotation: [0, 180, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 40], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 40], rotation: [0, 0, 0] },
+      { componentId: 'connector_L', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'connector_L', position: [40, 0, 0], rotation: [0, 90, 0] },
+      { componentId: 'connector_L', position: [0, 0, 40], rotation: [0, -90, 0] },
+      { componentId: 'connector_L', position: [40, 0, 40], rotation: [0, 180, 0] },
     ],
     connections: [],
   },
@@ -43,20 +43,25 @@ const defaultTemplates: DesignTemplate[] = [
     category: '基础',
     components: [
       // 底部
-      { componentId: 'pipe_30cm', position: [0, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [0, 0, 30], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 30], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 40], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 40], rotation: [0, 0, 0] },
       // 顶部
-      { componentId: 'pipe_30cm', position: [0, 30, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 30, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [0, 30, 30], rotation: [0, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 30, 30], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 40, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 40, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 40, 40], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 40, 40], rotation: [0, 0, 0] },
       // 立柱
-      { componentId: 'pipe_30cm', position: [0, 0, 0], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 0], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [0, 0, 30], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [30, 0, 30], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 40], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 40], rotation: [90, 0, 0] },
+      // 角落接头
+      { componentId: 'connector_3way', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'connector_3way', position: [40, 0, 0], rotation: [0, 90, 0] },
+      { componentId: 'connector_3way', position: [0, 0, 40], rotation: [0, -90, 0] },
+      { componentId: 'connector_3way', position: [40, 0, 40], rotation: [0, 180, 0] },
     ],
     connections: [],
   },
@@ -67,17 +72,69 @@ const defaultTemplates: DesignTemplate[] = [
     category: '进阶',
     components: [
       // 底部框架
-      { componentId: 'pipe_60cm', position: [0, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_60cm', position: [60, 0, 0], rotation: [0, 0, 0] },
-      { componentId: 'pipe_60cm', position: [0, 0, 60], rotation: [0, 0, 0] },
-      { componentId: 'pipe_60cm', position: [60, 0, 60], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 40], rotation: [0, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 40], rotation: [0, 0, 0] },
       // 立柱
-      { componentId: 'pipe_30cm', position: [0, 0, 0], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [60, 0, 0], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [0, 0, 60], rotation: [90, 0, 0] },
-      { componentId: 'pipe_30cm', position: [60, 0, 60], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [0, 0, 40], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [40, 0, 40], rotation: [90, 0, 0] },
       // 平台
-      { componentId: 'platform_large', position: [30, 30, 30], rotation: [0, 0, 0] },
+      { componentId: 'board_40x40', position: [20, 40, 20], rotation: [0, 0, 0] },
+      // 接头
+      { componentId: 'connector_L', position: [0, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'connector_L', position: [40, 0, 0], rotation: [0, 90, 0] },
+      { componentId: 'connector_L', position: [0, 0, 40], rotation: [0, -90, 0] },
+      { componentId: 'connector_L', position: [40, 0, 40], rotation: [0, 180, 0] },
+    ],
+    connections: [],
+  },
+  {
+    id: 'swing_set',
+    name: '秋千套装',
+    description: '带有秋千的完整套装',
+    category: '进阶',
+    components: [
+      // 顶部横梁
+      { componentId: 'pipe_35cm', position: [0, 60, 0], rotation: [0, 0, 90] },
+      // 左侧支撑
+      { componentId: 'pipe_35cm', position: [-20, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [-20, 35, 0], rotation: [0, 0, 0] },
+      // 右侧支撑
+      { componentId: 'pipe_35cm', position: [20, 0, 0], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [20, 35, 0], rotation: [0, 0, 0] },
+      // 秋千
+      { componentId: 'swing', position: [0, 0, 0], rotation: [0, 0, 0] },
+      // 接头
+      { componentId: 'connector_L', position: [-20, 0, 0], rotation: [0, 0, 0] },
+      { componentId: 'connector_L', position: [20, 0, 0], rotation: [0, 90, 0] },
+    ],
+    connections: [],
+  },
+  {
+    id: 'slide_combo',
+    name: '滑梯组合',
+    description: '带有滑梯的攀爬架组合',
+    category: '高级',
+    components: [
+      // 平台
+      { componentId: 'board_40x40', position: [0, 40, 0], rotation: [0, 0, 0] },
+      // 支撑柱
+      { componentId: 'pipe_35cm', position: [-20, 0, -20], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [20, 0, -20], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [-20, 0, 20], rotation: [90, 0, 0] },
+      { componentId: 'pipe_35cm', position: [20, 0, 20], rotation: [90, 0, 0] },
+      // 滑梯
+      { componentId: 'slide', position: [30, 20, 0], rotation: [0, 0, 0] },
+      // 绳梯
+      { componentId: 'rope_ladder', position: [-30, 0, 0], rotation: [0, 0, 0] },
+      // 接头
+      { componentId: 'connector_L', position: [-20, 0, -20], rotation: [0, 0, 0] },
+      { componentId: 'connector_L', position: [20, 0, -20], rotation: [0, 90, 0] },
+      { componentId: 'connector_L', position: [-20, 0, 20], rotation: [0, -90, 0] },
+      { componentId: 'connector_L', position: [20, 0, 20], rotation: [0, 180, 0] },
     ],
     connections: [],
   },
@@ -85,8 +142,8 @@ const defaultTemplates: DesignTemplate[] = [
 
 // 模板管理器
 const TemplateManager: React.FC = () => {
-  const { addComponent, reset } = useDesignStore();
-  const [templates, setTemplates] = useState<DesignTemplate[]>(defaultTemplates);
+  const { addComponent, reset, components } = useDesignStore();
+  const [templates] = useState<DesignTemplate[]>(defaultTemplates);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [form] = Form.useForm();
   
@@ -112,27 +169,34 @@ const TemplateManager: React.FC = () => {
   // 保存为模板
   const saveAsTemplate = useCallback(() => {
     form.validateFields().then(values => {
-      const newTemplate: DesignTemplate = {
+      // 创建模板数据
+      const templateData = {
         id: `custom_${Date.now()}`,
         name: values.name,
         description: values.description,
-        category: values.category,
-        components: [], // 这里应该从当前设计中获取
+        category: values.category || '自定义',
+        components: components.map(c => ({
+          componentId: c.componentId,
+          position: c.position,
+          rotation: c.rotation,
+        })),
         connections: [],
       };
       
-      setTemplates(prev => [...prev, newTemplate]);
-      message.success('模板保存成功');
+      // 保存到本地存储
+      try {
+        const savedTemplates = JSON.parse(localStorage.getItem('kid_climber_templates') || '[]');
+        savedTemplates.push(templateData);
+        localStorage.setItem('kid_climber_templates', JSON.stringify(savedTemplates));
+        message.success('模板保存成功');
+      } catch (error) {
+        message.error('模板保存失败');
+      }
+      
       setCreateModalVisible(false);
       form.resetFields();
     });
-  }, [form]);
-  
-  // 删除模板
-  const deleteTemplate = useCallback((templateId: string) => {
-    setTemplates(prev => prev.filter(t => t.id !== templateId));
-    message.success('模板已删除');
-  }, []);
+  }, [form, components]);
   
   // 按分类分组
   const groupedTemplates = useMemo(() => {
@@ -177,19 +241,7 @@ const TemplateManager: React.FC = () => {
                     >
                       使用
                     </Button>,
-                    template.id.startsWith('custom_') && (
-                      <Popconfirm
-                        title="确定要删除这个模板吗？"
-                        onConfirm={() => deleteTemplate(template.id)}
-                        okText="确定"
-                        cancelText="取消"
-                      >
-                        <Button type="link" danger size="small">
-                          删除
-                        </Button>
-                      </Popconfirm>
-                    ),
-                  ].filter(Boolean)}
+                  ]}
                 >
                   <List.Item.Meta
                     title={template.name}
@@ -243,6 +295,7 @@ const TemplateManager: React.FC = () => {
             <Select>
               <Select.Option value="基础">基础</Select.Option>
               <Select.Option value="进阶">进阶</Select.Option>
+              <Select.Option value="高级">高级</Select.Option>
               <Select.Option value="自定义">自定义</Select.Option>
             </Select>
           </Form.Item>

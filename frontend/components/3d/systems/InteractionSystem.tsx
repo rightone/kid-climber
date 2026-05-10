@@ -147,7 +147,7 @@ export const InteractionSystem: React.FC = () => {
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
   
-  // 获取鼠标位置
+  // 获取鼠标位置 - 支持地面和垂直面
   const getMousePosition = useCallback((event: MouseEvent): THREE.Vector3 | null => {
     const rect = gl.domElement.getBoundingClientRect();
     mouse.current.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -155,6 +155,30 @@ export const InteractionSystem: React.FC = () => {
     
     raycaster.current.setFromCamera(mouse.current, camera);
     
+    // 首先检测是否点击到场景中的对象
+    const intersects = raycaster.current.intersectObjects(scene.children, true);
+    
+    // 过滤出有效的碰撞面（排除不可见的对象）
+    const validIntersects = intersects.filter(i => {
+      // 检查是否是网格对象
+      if (i.object instanceof THREE.Mesh) {
+        // 检查是否可见
+        if (!i.object.visible) return false;
+        // 检查是否是辅助对象（如网格线、连接点等）
+        if (i.object.userData.isHelper) return false;
+        // 检查是否是放置预览
+        if (i.object.userData.isPreview) return false;
+        return true;
+      }
+      return false;
+    });
+    
+    if (validIntersects.length > 0) {
+      // 返回第一个有效碰撞点
+      return validIntersects[0].point;
+    }
+    
+    // 如果没有碰撞到对象，则检测地面平面
     const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const intersectPoint = new THREE.Vector3();
     
@@ -163,7 +187,7 @@ export const InteractionSystem: React.FC = () => {
     }
     
     return null;
-  }, [gl, camera]);
+  }, [gl, camera, scene]);
   
   // 查找点击的组件
   const findClickedComponent = useCallback((event: MouseEvent): string | null => {
