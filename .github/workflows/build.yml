@@ -1,0 +1,146 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: ''
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build Go backend
+        run: |
+          cd backend
+          go build -o kid-climber-server.exe ./cmd/server/main.go
+        shell: bash
+
+      - name: Install frontend dependencies
+        run: cd frontend && npm ci
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Kid Climber ${{ github.ref_name }}'
+          releaseBody: |
+            ## Kid Climber - 攀爬架结构设计软件
+            
+            ### 下载说明
+            - **Windows**: 下载 `.msi` 或 `.exe` 安装包
+            - **macOS**: 下载 `.dmg` 文件（Apple Silicon 或 Intel）
+            - **Linux**: 下载 `.deb` 或 `.AppImage` 文件
+            
+            ### 功能特性
+            - 🎨 3D可视化设计
+            - 🧩 30+种预设组件
+            - 📊 材料成本计算
+            - 🔍 结构稳定性检查
+            - 📁 多格式导出
+            - ⌨️ 快捷键支持
+            - 🎨 多主题切换
+            
+            ### 技术栈
+            - 前端：React + Three.js + TypeScript
+            - 后端：Go + Gin + SQLite
+            - 桌面：Tauri 2.0
+            
+            ### 问题反馈
+            如有问题请提交 [Issue](https://github.com/${{ github.repository }}/issues)
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
+
+  # Web版本构建
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache-dependency-path: backend/go.sum
+
+      - name: Build Go backend
+        run: |
+          cd backend
+          GOOS=js GOARCH=wasm go build -o ../frontend/public/backend.wasm ./cmd/wasm/main.go
+        shell: bash
+
+      - name: Install dependencies
+        run: cd frontend && npm ci
+
+      - name: Build frontend
+        run: cd frontend && npm run build
+
+      - name: Upload web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: frontend/dist

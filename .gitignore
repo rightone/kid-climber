@@ -1,0 +1,108 @@
+# Dependencies
+node_modules/
+vendor/
+.gogradle/
+
+# Build outputs
+dist/
+build/
+target/
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Cache
+.cache/
+*.cache
+
+# Package files
+*.tgz
+*.tar.gz
+*.zip
+
+# Test coverage
+coverage/
+*.cover
+*.py,cover
+.coverage
+htmlcov/
+
+# TypeScript
+*.tsbuildinfo
+
+# Go
+go.work
+go.work.sum
+
+# Rust
+Cargo.lock
+target/
+
+# Tauri
+src-tauri/target/
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Backend build
+backend/kid-climber-server
+backend/kid-climber-server.exe
+
+# Documentation
+doc/*.pdf
+doc/*.docx
+
+# Miscellaneous
+*.bak
+*.backup
+*.orig
+
+# Release builds
+release/
+
+# Playwright MCP
+.playwright-mcp/
+
+# Sisyphus
+.sisyphus/
+
+# Screenshots
+screenshot.png
+
+# Go proxy cache
+GOPATH/
+GOMODCACHE/
