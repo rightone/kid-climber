@@ -95,8 +95,7 @@
       "shortDescription": "攀爬架结构设计软件",
       "longDescription": "Kid Climber - 攀爬架结构设计软件，支持3D可视化设计、材料预估和清单导出",
       "deb": {
-        "depends": [],
-        "useBootstrapper": false
+        "depends": []
       },
       "macOS": {
         "frameworks": [],
@@ -108,18 +107,7 @@
     "windows": {
       "certificateThumbprint": null,
       "digestAlgorithm": "sha256",
-      "timestampUrl": "",
-      "nsis": {
-        "installMode": "both",
-        "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico",
-        "headerImage": null,
-        "sidebarImage": null,
-        "installerHooks": null
-      },
-      "wix": {
-        "language": "zh-CN"
-      }
+      "timestampUrl": ""
     }
     },
     "security": {
