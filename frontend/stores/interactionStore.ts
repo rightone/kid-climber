@@ -26,6 +26,12 @@ export interface InteractionState {
   snapToGrid: boolean;
   snapToComponent: boolean;
   gridSize: number;
+  showGrid: boolean;
+  showVerticalGrid: boolean;
+  showHeightRef: boolean;
+  showConnections: boolean;
+  showAvailablePositions: boolean;
+  autoConnect: boolean;
 }
 
 // 交互状态管理
@@ -70,6 +76,12 @@ const initialState: InteractionState = {
   snapToGrid: true,
   snapToComponent: true,
   gridSize: 20,  // 默认网格大小：20cm
+  showGrid: true,
+  showVerticalGrid: false,
+  showHeightRef: true,
+  showConnections: true,
+  showAvailablePositions: true,
+  autoConnect: true,
 };
 
 export const useInteractionStore = create<InteractionStore>((set, get) => ({
@@ -271,6 +283,66 @@ export const useInteractionStore = create<InteractionStore>((set, get) => ({
       interaction: {
         ...get().interaction,
         showPreview: show,
+      },
+    });
+  },
+  
+  // 设置显示网格
+  setShowGrid: (show: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        showGrid: show,
+      },
+    });
+  },
+  
+  // 设置显示垂直网格
+  setShowVerticalGrid: (show: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        showVerticalGrid: show,
+      },
+    });
+  },
+  
+  // 设置显示高度参考
+  setShowHeightRef: (show: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        showHeightRef: show,
+      },
+    });
+  },
+  
+  // 设置显示连接
+  setShowConnections: (show: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        showConnections: show,
+      },
+    });
+  },
+  
+  // 设置显示可用位置
+  setShowAvailablePositions: (show: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        showAvailablePositions: show,
+      },
+    });
+  },
+  
+  // 设置自动连接
+  setAutoConnect: (auto: boolean) => {
+    set({
+      interaction: {
+        ...get().interaction,
+        autoConnect: auto,
       },
     });
   },
