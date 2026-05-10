@@ -107,7 +107,14 @@ go build -o kid-climber-server ./cmd/server/main.go
 
 ## 📝 许可证
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+本项目采用 GPL-3.0 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+
+**这意味着：**
+- ✅ 可以自由使用、修改和分发
+- ✅ 可以商业使用
+- ⚠️ **二次开发必须开源**
+- ⚠️ **必须使用相同的 GPL-3.0 许可证**
+- ⚠️ **必须保留原作者版权声明**
 
 ## 🙏 致谢
 
