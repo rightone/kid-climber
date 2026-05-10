@@ -82,17 +82,18 @@ frontend/node_modules/
 backend/kid-climber-server
 backend/kid-climber-server.exe
 
-# Documentation
-doc/*.pdf
-doc/*.docx
-
-# Miscellaneous
-*.bak
-*.backup
-*.orig
+# Documentation (keep only essential docs)
+doc/
+*.md
+!README.md
+!LICENSE
+!CONTRIBUTING.md
 
 # Release builds
 release/
+
+# Build scripts (Windows specific)
+*.bat
 
 # Playwright MCP
 .playwright-mcp/
@@ -101,8 +102,28 @@ release/
 .sisyphus/
 
 # Screenshots
-screenshot.png
+*.png
+*.jpg
+*.gif
 
 # Go proxy cache
 GOPATH/
 GOMODCACHE/
+
+# Miscellaneous
+*.bak
+*.backup
+*.orig
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
