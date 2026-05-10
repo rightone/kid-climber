@@ -158,6 +158,64 @@ const ClimberComponent: React.FC<ClimberComponentProps> = React.memo(({
 
 ClimberComponent.displayName = 'ClimberComponent';
 
+// 连接线渲染
+const ConnectionLines: React.FC = () => {
+  const { connections, components } = useDesignStore();
+  
+  const lines = useMemo(() => {
+    return connections.map((connection) => {
+      const sourceComponent = components.find(c => c.instanceId === connection.source.componentId);
+      const targetComponent = components.find(c => c.instanceId === connection.target.componentId);
+      
+      if (!sourceComponent || !targetComponent) return null;
+      
+      const sourceDef = getComponentById(sourceComponent.componentId);
+      const targetDef = getComponentById(targetComponent.componentId);
+      
+      if (!sourceDef || !targetDef) return null;
+      
+      const sourcePoint = sourceDef.connectionPoints.find(p => p.id === connection.source.pointId);
+      const targetPoint = targetDef.connectionPoints.find(p => p.id === connection.target.pointId);
+      
+      if (!sourcePoint || !targetPoint) return null;
+      
+      // 计算世界坐标
+      const sourcePos = new THREE.Vector3(
+        sourceComponent.position[0] + sourcePoint.position[0],
+        sourceComponent.position[1] + sourcePoint.position[1],
+        sourceComponent.position[2] + sourcePoint.position[2]
+      );
+      
+      const targetPos = new THREE.Vector3(
+        targetComponent.position[0] + targetPoint.position[0],
+        targetComponent.position[1] + targetPoint.position[1],
+        targetComponent.position[2] + targetPoint.position[2]
+      );
+      
+      return {
+        id: connection.id,
+        start: sourcePos,
+        end: targetPos,
+      };
+    }).filter(Boolean);
+  }, [connections, components]);
+  
+  return (
+    <group>
+      {lines.map((line) => {
+        if (!line) return null;
+        
+        const points = [line.start, line.end];
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        
+        return (
+          <primitive key={line.id} object={new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: '#1890ff' }))} />
+        );
+      })}
+    </group>
+  );
+};
+
 // 组件渲染器
 const ComponentRenderer: React.FC = () => {
   const { components, editor, selectComponent, toggleSelectComponent, setEditorState } = useDesignStore();
@@ -171,15 +229,10 @@ const ComponentRenderer: React.FC = () => {
       toggleSelectComponent(instanceId);
     } else {
       // 单选
-      clearSelection();
+      useDesignStore.getState().clearSelection();
       selectComponent(instanceId);
     }
   }, [selectComponent, toggleSelectComponent]);
-  
-  // 清空选择
-  const clearSelection = useCallback(() => {
-    useDesignStore.getState().clearSelection();
-  }, []);
   
   // 处理悬停
   const handlePointerOver = useCallback((instanceId: string, e: any) => {
@@ -193,6 +246,7 @@ const ComponentRenderer: React.FC = () => {
   
   return (
     <group>
+      {/* 渲染所有组件 */}
       {components.map((component) => (
         <ClimberComponent
           key={component.instanceId}
@@ -209,6 +263,9 @@ const ComponentRenderer: React.FC = () => {
           onPointerOut={handlePointerOut}
         />
       ))}
+      
+      {/* 渲染连接线 */}
+      <ConnectionLines />
     </group>
   );
 };
