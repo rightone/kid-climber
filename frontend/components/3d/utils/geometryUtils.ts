@@ -1,125 +1,351 @@
 import * as THREE from 'three';
 
-// 创建管子几何体（简化版本，更可靠）
+// ============ 管件几何体 ============
+
+// 创建管子几何体
 export const createPipeGeometry = (
   length: number,
   diameter: number,
   segments: number = 16
 ): THREE.BufferGeometry => {
   const radius = diameter / 2;
-  
-  // 使用简单的圆柱体
   const geometry = new THREE.CylinderGeometry(radius, radius, length, segments);
-  
-  // 旋转使管子沿Z轴方向
   geometry.rotateX(Math.PI / 2);
-  
   return geometry;
 };
 
-// 创建弯头几何体
-export const createElbowGeometry = (
-  _angle: number,
+// ============ 接头几何体 ============
+
+// 创建一字接头（直通）
+export const createStraightConnectorGeometry = (
   diameter: number,
   segments: number = 16
 ): THREE.BufferGeometry => {
   const radius = diameter / 2;
-  const bendRadius = diameter * 1.5;
+  const length = diameter * 2; // 接头长度是直径的2倍
   
-  // 创建弯曲路径
-  const curve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0, 0, -bendRadius),
-    new THREE.Vector3(0, bendRadius * 0.7, -bendRadius * 0.7),
-    new THREE.Vector3(0, bendRadius, 0),
-  ]);
-  
-  // 使用管道几何体
-  const geometry = new THREE.TubeGeometry(curve, segments, radius, 8, false);
-  
+  // 主体圆柱
+  const geometry = new THREE.CylinderGeometry(radius * 1.2, radius * 1.2, length, segments);
+  geometry.rotateX(Math.PI / 2);
   return geometry;
 };
 
-// 创建三通几何体
-export const createTeeGeometry = (
+// 创建L型接头（90度弯头）
+export const createLConnectorGeometry = (
   diameter: number,
   segments: number = 16
 ): THREE.BufferGeometry => {
   const radius = diameter / 2;
-  const length = diameter * 3;
+  const armLength = diameter * 2;
   
-  // 创建组
   const group = new THREE.Group();
   
-  // 主管（沿Z轴）
-  const mainPipe = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, length, segments)
+  // 水平臂
+  const horizontalArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
   );
-  mainPipe.rotation.x = Math.PI / 2;
+  horizontalArm.rotation.z = Math.PI / 2;
+  horizontalArm.position.x = armLength / 2;
+  group.add(horizontalArm);
+  
+  // 垂直臂
+  const verticalArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  verticalArm.position.y = armLength / 2;
+  group.add(verticalArm);
+  
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
+  
+  return mergeGroupGeometry(group);
+};
+
+// 创建T型接头（三通）
+export const createTConnectorGeometry = (
+  diameter: number,
+  segments: number = 16
+): THREE.BufferGeometry => {
+  const radius = diameter / 2;
+  const armLength = diameter * 2;
+  
+  const group = new THREE.Group();
+  
+  // 主管（水平）
+  const mainPipe = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength * 2, segments)
+  );
+  mainPipe.rotation.z = Math.PI / 2;
   group.add(mainPipe);
   
-  // 分支管（沿X轴）
+  // 分支管（向上）
   const branchPipe = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, length / 2, segments)
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
   );
-  branchPipe.rotation.z = Math.PI / 2;
-  branchPipe.position.x = length / 4;
+  branchPipe.position.y = armLength / 2;
   group.add(branchPipe);
   
-  // 合并几何体
-  const geometry = mergeGroupGeometry(group);
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
   
-  return geometry;
+  return mergeGroupGeometry(group);
 };
 
-// 创建四通几何体
-export const createCrossGeometry = (
+// 创建45度接头
+export const create45DegConnectorGeometry = (
   diameter: number,
   segments: number = 16
 ): THREE.BufferGeometry => {
   const radius = diameter / 2;
-  const length = diameter * 3;
+  const armLength = diameter * 2;
   
   const group = new THREE.Group();
   
-  // 主管（Z轴）
-  const mainPipe = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, length, segments)
+  // 水平臂
+  const horizontalArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
   );
-  mainPipe.rotation.x = Math.PI / 2;
-  group.add(mainPipe);
+  horizontalArm.rotation.z = Math.PI / 2;
+  horizontalArm.position.x = armLength / 2;
+  group.add(horizontalArm);
   
-  // 分支1（X轴正方向）
-  const branch1 = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, length / 2, segments)
+  // 45度臂
+  const angledArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
   );
-  branch1.rotation.z = Math.PI / 2;
-  branch1.position.x = length / 4;
-  group.add(branch1);
+  angledArm.rotation.z = Math.PI / 4;
+  angledArm.position.set(armLength / 2 * Math.cos(Math.PI / 4), armLength / 2 * Math.sin(Math.PI / 4), 0);
+  group.add(angledArm);
   
-  // 分支2（X轴负方向）
-  const branch2 = new THREE.Mesh(
-    new THREE.CylinderGeometry(radius, radius, length / 2, segments)
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
   );
-  branch2.rotation.z = -Math.PI / 2;
-  branch2.position.x = -length / 4;
-  group.add(branch2);
+  group.add(joint);
   
-  const geometry = mergeGroupGeometry(group);
-  
-  return geometry;
+  return mergeGroupGeometry(group);
 };
 
-// 创建平台几何体
+// 创建三向接头
+export const create3WayConnectorGeometry = (
+  diameter: number,
+  segments: number = 16
+): THREE.BufferGeometry => {
+  const radius = diameter / 2;
+  const armLength = diameter * 2;
+  
+  const group = new THREE.Group();
+  
+  // X轴臂
+  const xArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm.rotation.z = Math.PI / 2;
+  xArm.position.x = armLength / 2;
+  group.add(xArm);
+  
+  // Y轴臂
+  const yArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  yArm.position.y = armLength / 2;
+  group.add(yArm);
+  
+  // Z轴臂
+  const zArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm.rotation.x = Math.PI / 2;
+  zArm.position.z = armLength / 2;
+  group.add(zArm);
+  
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
+  
+  return mergeGroupGeometry(group);
+};
+
+// 创建四向接头
+export const create4WayConnectorGeometry = (
+  diameter: number,
+  segments: number = 16
+): THREE.BufferGeometry => {
+  const radius = diameter / 2;
+  const armLength = diameter * 2;
+  
+  const group = new THREE.Group();
+  
+  // X轴正方向
+  const xArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm1.rotation.z = Math.PI / 2;
+  xArm1.position.x = armLength / 2;
+  group.add(xArm1);
+  
+  // X轴负方向
+  const xArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm2.rotation.z = Math.PI / 2;
+  xArm2.position.x = -armLength / 2;
+  group.add(xArm2);
+  
+  // Z轴正方向
+  const zArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm1.rotation.x = Math.PI / 2;
+  zArm1.position.z = armLength / 2;
+  group.add(zArm1);
+  
+  // Z轴负方向
+  const zArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm2.rotation.x = Math.PI / 2;
+  zArm2.position.z = -armLength / 2;
+  group.add(zArm2);
+  
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
+  
+  return mergeGroupGeometry(group);
+};
+
+// 创建十字接头
+export const createCrossConnectorGeometry = (
+  diameter: number,
+  segments: number = 16
+): THREE.BufferGeometry => {
+  const radius = diameter / 2;
+  const armLength = diameter * 2;
+  
+  const group = new THREE.Group();
+  
+  // X轴正方向
+  const xArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm1.rotation.z = Math.PI / 2;
+  xArm1.position.x = armLength / 2;
+  group.add(xArm1);
+  
+  // X轴负方向
+  const xArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm2.rotation.z = Math.PI / 2;
+  xArm2.position.x = -armLength / 2;
+  group.add(xArm2);
+  
+  // Z轴正方向
+  const zArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm1.rotation.x = Math.PI / 2;
+  zArm1.position.z = armLength / 2;
+  group.add(zArm1);
+  
+  // Z轴负方向
+  const zArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm2.rotation.x = Math.PI / 2;
+  zArm2.position.z = -armLength / 2;
+  group.add(zArm2);
+  
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
+  
+  return mergeGroupGeometry(group);
+};
+
+// 创建五向接头
+export const create5WayConnectorGeometry = (
+  diameter: number,
+  segments: number = 16
+): THREE.BufferGeometry => {
+  const radius = diameter / 2;
+  const armLength = diameter * 2;
+  
+  const group = new THREE.Group();
+  
+  // X轴正方向
+  const xArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm1.rotation.z = Math.PI / 2;
+  xArm1.position.x = armLength / 2;
+  group.add(xArm1);
+  
+  // X轴负方向
+  const xArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  xArm2.rotation.z = Math.PI / 2;
+  xArm2.position.x = -armLength / 2;
+  group.add(xArm2);
+  
+  // Z轴正方向
+  const zArm1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm1.rotation.x = Math.PI / 2;
+  zArm1.position.z = armLength / 2;
+  group.add(zArm1);
+  
+  // Z轴负方向
+  const zArm2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  zArm2.rotation.x = Math.PI / 2;
+  zArm2.position.z = -armLength / 2;
+  group.add(zArm2);
+  
+  // Y轴正方向
+  const yArm = new THREE.Mesh(
+    new THREE.CylinderGeometry(radius * 1.1, radius * 1.1, armLength, segments)
+  );
+  yArm.position.y = armLength / 2;
+  group.add(yArm);
+  
+  // 连接球
+  const joint = new THREE.Mesh(
+    new THREE.SphereGeometry(radius * 1.3, segments, segments)
+  );
+  group.add(joint);
+  
+  return mergeGroupGeometry(group);
+};
+
+// ============ 平台几何体 ============
+
 export const createPlatformGeometry = (
   width: number,
   height: number,
   depth: number = 2
 ): THREE.BufferGeometry => {
-  const geometry = new THREE.BoxGeometry(width, depth, height);
-  return geometry;
+  return new THREE.BoxGeometry(width, depth, height);
 };
 
-// 创建秋千几何体
+// ============ 附件几何体 ============
+
 export const createSwingGeometry = (
   width: number,
   height: number
@@ -168,19 +394,16 @@ export const createSwingGeometry = (
   seat.position.y = -height * 0.4;
   group.add(seat);
   
-  const geometry = mergeGroupGeometry(group);
-  
-  return geometry;
+  return mergeGroupGeometry(group);
 };
 
-// 创建滑梯几何体
 export const createSlideGeometry = (
   width: number,
   height: number
 ): THREE.BufferGeometry => {
   const group = new THREE.Group();
   
-  // 滑梯主体（弯曲的管道）
+  // 滑梯主体
   const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, height / 2, -20),
     new THREE.Vector3(0, height / 4, 0),
@@ -205,12 +428,9 @@ export const createSlideGeometry = (
   handrail2.position.set(width / 2, height / 4, 0);
   group.add(handrail2);
   
-  const geometry = mergeGroupGeometry(group);
-  
-  return geometry;
+  return mergeGroupGeometry(group);
 };
 
-// 创建绳梯几何体
 export const createRopeLadderGeometry = (
   width: number,
   height: number
@@ -251,18 +471,16 @@ export const createRopeLadderGeometry = (
     group.add(rung);
   }
   
-  const geometry = mergeGroupGeometry(group);
-  
-  return geometry;
+  return mergeGroupGeometry(group);
 };
 
-// 合并Group的几何体
+// ============ 几何体合并工具 ============
+
 const mergeGroupGeometry = (group: THREE.Group): THREE.BufferGeometry => {
   const geometries: THREE.BufferGeometry[] = [];
   
   group.traverse((child) => {
     if (child instanceof THREE.Mesh && child.geometry) {
-      // 克隆几何体并应用变换
       const geo = child.geometry.clone();
       child.updateMatrix();
       geo.applyMatrix4(child.matrix);
@@ -278,11 +496,9 @@ const mergeGroupGeometry = (group: THREE.Group): THREE.BufferGeometry => {
     return geometries[0];
   }
   
-  // 合并所有几何体
   return mergeGeometries(geometries);
 };
 
-// 合并多个几何体
 const mergeGeometries = (geometries: THREE.BufferGeometry[]): THREE.BufferGeometry => {
   const mergedGeometry = new THREE.BufferGeometry();
   const positions: number[] = [];
@@ -296,17 +512,14 @@ const mergeGeometries = (geometries: THREE.BufferGeometry[]): THREE.BufferGeomet
     const normalArray = geometry.attributes.normal.array;
     const indexArray = geometry.index?.array;
     
-    // 添加顶点
     for (let i = 0; i < posArray.length; i++) {
       positions.push(posArray[i]);
     }
     
-    // 添加法线
     for (let i = 0; i < normalArray.length; i++) {
       normals.push(normalArray[i]);
     }
     
-    // 添加索引
     if (indexArray) {
       for (let i = 0; i < indexArray.length; i++) {
         indices.push(indexArray[i] + indexOffset);
@@ -326,64 +539,97 @@ const mergeGeometries = (geometries: THREE.BufferGeometry[]): THREE.BufferGeomet
   return mergedGeometry;
 };
 
-// 根据组件类型创建几何体
+// ============ 主要创建函数 ============
+
+// 根据组件ID创建几何体
 export const createComponentGeometry = (
   componentId: string,
   componentDef: any
 ): THREE.BufferGeometry => {
-  const [type] = componentId.split('_');
+  // 解析组件类型
+  const parts = componentId.split('_');
+  const type = parts[0];
+  const subtype = parts.slice(1).join('_');
   
+  const diameter = componentDef.diameter || 2.5;
+  
+  // 管件
+  if (type === 'pipe') {
+    return createPipeGeometry(
+      componentDef.length || 35,
+      diameter
+    );
+  }
+  
+  // 接头（新格式：connector_*）
+  if (type === 'connector') {
+    switch (subtype) {
+      case 'straight':
+        return createStraightConnectorGeometry(diameter);
+      case 'L':
+        return createLConnectorGeometry(diameter);
+      case 'T':
+        return createTConnectorGeometry(diameter);
+      case '45deg':
+        return create45DegConnectorGeometry(diameter);
+      case '3way':
+        return create3WayConnectorGeometry(diameter);
+      case '4way':
+        return create4WayConnectorGeometry(diameter);
+      case 'cross':
+        return createCrossConnectorGeometry(diameter);
+      case '5way':
+        return create5WayConnectorGeometry(diameter);
+      default:
+        return createStraightConnectorGeometry(diameter);
+    }
+  }
+  
+  // 弯头（兼容旧格式）
+  if (type === 'elbow') {
+    return createLConnectorGeometry(diameter);
+  }
+  
+  // 三通（兼容旧格式）
+  if (type === 'tee') {
+    return createTConnectorGeometry(diameter);
+  }
+  
+  // 四通（兼容旧格式）
+  if (type === 'cross') {
+    return createCrossConnectorGeometry(diameter);
+  }
+  
+  // 平台/板子
+  if (type === 'platform' || type === 'board') {
+    return createPlatformGeometry(
+      componentDef.width || 40,
+      componentDef.height || 40
+    );
+  }
+  
+  // 附件
   switch (type) {
-    case 'pipe':
-      return createPipeGeometry(
-        componentDef.length || 30,
-        componentDef.diameter || 2.5
-      );
-      
-    case 'elbow':
-      return createElbowGeometry(
-        componentDef.angle || 90,
-        componentDef.diameter || 2.5
-      );
-      
-    case 'tee':
-      return createTeeGeometry(
-        componentDef.diameter || 2.5
-      );
-      
-    case 'cross':
-      return createCrossGeometry(
-        componentDef.diameter || 2.5
-      );
-      
-    case 'platform':
-      return createPlatformGeometry(
-        componentDef.width || 30,
-        componentDef.height || 30
-      );
-      
     case 'swing':
       return createSwingGeometry(
-        componentDef.width || 30,
+        componentDef.width || 40,
         componentDef.height || 200
       );
-      
     case 'slide':
       return createSlideGeometry(
         componentDef.width || 40,
         componentDef.height || 150
       );
-      
     case 'rope':
       return createRopeLadderGeometry(
-        componentDef.width || 30,
+        componentDef.width || 40,
         componentDef.height || 180
       );
-      
-    default:
-      // 默认立方体
-      return new THREE.BoxGeometry(10, 10, 10);
   }
+  
+  // 默认立方体
+  console.warn(`Unknown component type: ${componentId}`);
+  return new THREE.BoxGeometry(10, 10, 10);
 };
 
 // 创建连接点可视化
@@ -431,7 +677,7 @@ export const canConnect = (
   point1: { type: string; compatible: string[] },
   point2: { type: string; compatible: string[] },
   distance: number,
-  maxDistance: number = 5
+  maxDistance: number = 10
 ): boolean => {
   if (distance > maxDistance) {
     return false;
@@ -492,9 +738,7 @@ export const calculateAlignmentTransform = (
 };
 
 // 清除模型缓存
-export const clearModelCache = (): void => {
-  // 暂时不需要缓存
-};
+export const clearModelCache = (): void => {};
 
 // 获取缓存大小
 export const getModelCacheSize = (): number => {

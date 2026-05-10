@@ -1,8 +1,10 @@
-import React, { useRef, useCallback, useEffect } from 'react';
+import React, { useRef, useCallback, useEffect, useMemo } from 'react';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useDesignStore } from '../../../stores/designStore';
 import { useInteractionStore } from '../../../stores/interactionStore';
+import { getComponentById } from '../../../stores/componentLibrary';
+import { createComponentGeometry } from '../utils/geometryUtils';
 
 // 地面平面（用于鼠标交互）
 const GroundPlane: React.FC = () => {
@@ -14,12 +16,64 @@ const GroundPlane: React.FC = () => {
   );
 };
 
+// 网格线组件
+const GridLines: React.FC = () => {
+  const { interaction } = useInteractionStore();
+  const { gridSize, snapToGrid } = interaction;
+  
+  if (!snapToGrid) return null;
+  
+  const lines = useMemo(() => {
+    const points: THREE.Vector3[] = [];
+    const size = 200; // 网格范围
+    const halfSize = size / 2;
+    
+    // 水平线
+    for (let z = -halfSize; z <= halfSize; z += gridSize) {
+      points.push(new THREE.Vector3(-halfSize, 0, z));
+      points.push(new THREE.Vector3(halfSize, 0, z));
+    }
+    
+    // 垂直线
+    for (let x = -halfSize; x <= halfSize; x += gridSize) {
+      points.push(new THREE.Vector3(x, 0, -halfSize));
+      points.push(new THREE.Vector3(x, 0, halfSize));
+    }
+    
+    return points;
+  }, [gridSize]);
+  
+  const geometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    geo.setFromPoints(lines);
+    return geo;
+  }, [lines]);
+  
+  return (
+    <lineSegments geometry={geometry}>
+      <lineBasicMaterial color="#cccccc" transparent opacity={0.3} />
+    </lineSegments>
+  );
+};
+
 // 放置预览组件
 const PlacePreview: React.FC = () => {
   const { interaction } = useInteractionStore();
   const { placeState, showPreview, gridSize } = interaction;
   
-  if (!showPreview || !placeState.previewPosition) {
+  // 获取组件定义
+  const definition = useMemo(() => {
+    if (!placeState.componentId) return null;
+    return getComponentById(placeState.componentId);
+  }, [placeState.componentId]);
+  
+  // 创建几何体
+  const geometry = useMemo(() => {
+    if (!definition) return new THREE.BoxGeometry(10, 10, 10);
+    return createComponentGeometry(placeState.componentId!, definition);
+  }, [placeState.componentId, definition]);
+  
+  if (!showPreview || !placeState.previewPosition || !definition) {
     return null;
   }
   
@@ -27,9 +81,8 @@ const PlacePreview: React.FC = () => {
   
   return (
     <group position={[x, y, z]}>
-      {/* 预览立方体 */}
-      <mesh>
-        <boxGeometry args={[10, 10, 10]} />
+      {/* 预览组件 */}
+      <mesh geometry={geometry}>
         <meshStandardMaterial
           color={placeState.isValid ? '#52c41a' : '#ff4d4f'}
           transparent
@@ -40,7 +93,7 @@ const PlacePreview: React.FC = () => {
       
       {/* 放置点指示器 */}
       <mesh position={[0, -0.5, 0]}>
-        <cylinderGeometry args={[0.5, 0.5, 0.1, 16]} />
+        <cylinderGeometry args={[1, 1, 0.2, 16]} />
         <meshBasicMaterial
           color={placeState.isValid ? '#52c41a' : '#ff4d4f'}
           transparent
@@ -48,9 +101,24 @@ const PlacePreview: React.FC = () => {
         />
       </mesh>
       
+      {/* 连接点指示 */}
+      {definition.connectionPoints.map((point, index) => (
+        <group key={index} position={point.position}>
+          <mesh>
+            <sphereGeometry args={[0.5, 8, 8]} />
+            <meshBasicMaterial
+              color="#1890ff"
+              transparent
+              opacity={0.6}
+            />
+          </mesh>
+        </group>
+      ))}
+      
       {/* 网格吸附指示 */}
       {interaction.snapToGrid && (
         <>
+          {/* 十字线 */}
           <line>
             <bufferGeometry>
               <bufferAttribute
@@ -86,7 +154,7 @@ const PlacePreview: React.FC = () => {
 export const InteractionSystem: React.FC = () => {
   const { gl, camera, scene } = useThree();
   const { addComponent, moveComponent, saveToHistory, components } = useDesignStore();
-  const { interaction, updatePlacePreview, confirmPlace, startDrag, endDrag } = useInteractionStore();
+  const { interaction, updatePlacePreview, startDrag, endDrag } = useInteractionStore();
   
   const raycaster = useRef(new THREE.Raycaster());
   const mouse = useRef(new THREE.Vector2());
@@ -123,7 +191,6 @@ export const InteractionSystem: React.FC = () => {
     for (const intersect of intersects) {
       let object: THREE.Object3D | null = intersect.object;
       
-      // 向上遍历找到组件组
       while (object) {
         if (object.userData.instanceId) {
           return object.userData.instanceId;
@@ -139,23 +206,19 @@ export const InteractionSystem: React.FC = () => {
   const handleMouseDown = useCallback((event: MouseEvent) => {
     if (event.button !== 0) return;
     
-    const { mode } = interaction;
+    const { mode, placeState } = interaction;
     
-    if (mode === 'place') {
+    if (mode === 'place' && placeState.componentId && placeState.previewPosition) {
       // 放置模式：点击放置组件
-      const { placeState } = interaction;
-      if (placeState.componentId && placeState.previewPosition) {
-        addComponent({
-          instanceId: `inst_${Date.now()}`,
-          componentId: placeState.componentId,
-          position: placeState.previewPosition,
-          rotation: [0, 0, 0],
-          scale: [1, 1, 1],
-        });
-        saveToHistory();
-        // 重置放置状态
-        useInteractionStore.getState().cancelPlace();
-      }
+      addComponent({
+        instanceId: `inst_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        componentId: placeState.componentId,
+        position: placeState.previewPosition,
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+      });
+      saveToHistory();
+      useInteractionStore.getState().cancelPlace();
     } else if (mode === 'select' || mode === 'move') {
       const clickedId = findClickedComponent(event);
       
@@ -182,19 +245,28 @@ export const InteractionSystem: React.FC = () => {
         clearSelection();
       }
     }
-  }, [interaction, confirmPlace, addComponent, saveToHistory, findClickedComponent, getMousePosition, startDrag, components]);
+  }, [interaction, addComponent, saveToHistory, findClickedComponent, getMousePosition, startDrag, components]);
   
   // 鼠标移动
   const handleMouseMove = useCallback((event: MouseEvent) => {
-    const { mode, isDragging } = interaction;
+    const { mode, isDragging, snapToGrid, gridSize } = interaction;
     
     const mousePos = getMousePosition(event);
     if (!mousePos) return;
     
     if (mode === 'place') {
-      updatePlacePreview([mousePos.x, mousePos.y, mousePos.z]);
+      // 对齐到网格
+      let snappedPosition: [number, number, number] = [mousePos.x, mousePos.y, mousePos.z];
+      if (snapToGrid) {
+        snappedPosition = [
+          Math.round(mousePos.x / gridSize) * gridSize,
+          mousePos.y,
+          Math.round(mousePos.z / gridSize) * gridSize,
+        ];
+      }
+      updatePlacePreview(snappedPosition);
     } else if (isDragging) {
-      const { dragTarget, dragOffset, snapToGrid, gridSize } = interaction;
+      const { dragTarget, dragOffset } = interaction;
       if (dragTarget) {
         // 对齐到网格
         let snappedPosition: [number, number, number] = [mousePos.x, mousePos.y, mousePos.z];
@@ -206,7 +278,6 @@ export const InteractionSystem: React.FC = () => {
           ];
         }
         
-        // 计算新位置（减去偏移）
         const newPosition: [number, number, number] = [
           snappedPosition[0] - dragOffset[0],
           snappedPosition[1] - dragOffset[1],
@@ -246,6 +317,7 @@ export const InteractionSystem: React.FC = () => {
   return (
     <>
       <GroundPlane />
+      <GridLines />
       <PlacePreview />
     </>
   );
