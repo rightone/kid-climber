@@ -93,29 +93,101 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: 'Kid Climber ${{ github.ref_name }}'
           releaseBody: |
-            ## Kid Climber - 攀爬架结构设计软件
+            # Kid Climber ${{ github.ref_name }}
             
-            ### 下载说明
-            - **Windows**: 下载 `.msi` 或 `.exe` 安装包
-            - **macOS**: 下载 `.dmg` 文件（Apple Silicon 或 Intel）
-            - **Linux**: 下载 `.deb` 或 `.AppImage` 文件
+            > 专业的攀爬架结构设计软件，支持3D可视化设计、材料预估和清单导出。
             
-            ### 功能特性
-            - 🎨 3D可视化设计
-            - 🧩 30+种预设组件
-            - 📊 材料成本计算
-            - 🔍 结构稳定性检查
-            - 📁 多格式导出
-            - ⌨️ 快捷键支持
-            - 🎨 多主题切换
+            ---
             
-            ### 技术栈
-            - 前端：React + Three.js + TypeScript
-            - 后端：Go + Gin + SQLite
-            - 桌面：Tauri 2.0
+            ## 📦 下载安装包
             
-            ### 问题反馈
-            如有问题请提交 [Issue](https://github.com/${{ github.repository }}/issues)
+            | 平台 | 文件 | 说明 |
+            |------|------|------|
+            | **Windows** | `.msi` | Windows 安装包 |
+            | **Windows** | `.exe` | Windows 便携版 |
+            | **macOS (Intel)** | `.dmg` | macOS Intel 版本 |
+            | **macOS (Apple Silicon)** | `.dmg` | macOS M1/M2 版本 |
+            | **Linux** | `.deb` | Debian/Ubuntu 安装包 |
+            | **Linux** | `.AppImage` | Linux 便携版 |
+            | **Linux** | `.rpm` | Fedora/CentOS 安装包 |
+            
+            ---
+            
+            ## ✨ 功能特性
+            
+            ### 🎨 3D 可视化设计
+            - 实时3D预览，支持旋转、缩放、平移
+            - 拖拽式组件放置，直观易用
+            - 多种视图模式（真实感、线框、X光、黑白）
+            - 网格显示和组件吸附
+            - 立体参考线系统
+            
+            ### 🧩 丰富的组件库
+            - **管件**: 35cm、15cm 直管
+            - **接头**: 一字、L型、T型、45度、三向、四向、十字、五向
+            - **板子**: 40×40cm、40×20cm
+            - **附件**: 秋千、滑梯、绳梯
+            
+            ### 📊 材料管理
+            - 自动计算材料需求
+            - 库存管理和短缺统计
+            - 连接损耗计算
+            - 成本预估
+            
+            ### 🔍 结构分析
+            - 稳定性检查
+            - 连接分析
+            - 支撑检查
+            - 平衡分析
+            
+            ### 🔗 智能连接
+            - 自动连接检测
+            - 连接点可视化
+            - 智能位置预测
+            
+            ### 📁 文件管理
+            - 设计文件保存/加载
+            - 多格式导出（PNG、OBJ、GLTF）
+            - 材料清单打印
+            
+            ### ⌨️ 快捷键支持
+            - Ctrl+Z/Y：撤销/重做
+            - Ctrl+C/V：复制/粘贴
+            - V/M/R：工具切换
+            - 1/2/3/4：视图模式切换
+            
+            ---
+            
+            ## 🛠️ 技术栈
+            
+            | 层级 | 技术 |
+            |------|------|
+            | 前端 | React 18 + TypeScript + Three.js |
+            | 状态管理 | Zustand |
+            | UI组件 | Ant Design |
+            | 后端 | Go + Gin + SQLite |
+            | 桌面 | Tauri 2.0 |
+            
+            ---
+            
+            ## 📖 使用说明
+            
+            1. 下载并安装对应平台的安装包
+            2. 启动应用程序
+            3. 从左侧组件库选择组件
+            4. 在3D视图中点击放置组件
+            5. 使用工具栏调整组件位置和旋转
+            6. 保存或导出设计
+            
+            ---
+            
+            ## 🐛 问题反馈
+            
+            如有问题或建议，请提交 [Issue](https://github.com/${{ github.repository }}/issues)
+            
+            ---
+            
+            **感谢使用 Kid Climber！** 🎉
           releaseDraft: true
           prerelease: false
           args: ${{ matrix.args }}
