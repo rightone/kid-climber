@@ -3,7 +3,7 @@
 一款专业的攀爬架结构设计软件，支持 3D 可视化设计、材料预估和清单导出。
 
 [![Build](https://github.com/YOUR_USERNAME/kid-climber/actions/workflows/build.yml/badge.svg)](https://github.com/YOUR_USERNAME/kid-climber/actions/workflows/build.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: GPL-3.0](https://img.shields.io/badge/License-GPL--3.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 ## ✨ 功能特性
 
