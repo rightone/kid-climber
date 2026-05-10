@@ -3,6 +3,7 @@ import { Input, Tag, Collapse, Tooltip, Empty, Button, Space, Switch } from 'ant
 import { SearchOutlined, AppstoreOutlined, BarsOutlined, AimOutlined } from '@ant-design/icons';
 import { componentDefinitions, searchComponents, getCategories } from '../../stores/componentLibrary';
 import { useInteractionStore } from '../../stores/interactionStore';
+import { ComponentThumbnail } from './ComponentThumbnail';
 import type { ComponentDefinition } from '../../types';
 
 const { Panel } = Collapse;
@@ -20,21 +21,6 @@ const ComponentCard: React.FC<ComponentCardProps> = React.memo(({
   const [isHovered, setIsHovered] = useState(false);
   const { startPlace } = useInteractionStore();
   const { interaction } = useInteractionStore();
-  
-  // 获取组件图标
-  const getComponentIcon = () => {
-    switch (component.type) {
-      case 'pipe': return '🔧';
-      case 'elbow': return '↩️';
-      case 'tee': return '🔀';
-      case 'cross': return '✳️';
-      case 'platform': return '⬜';
-      case 'swing': return '🎠';
-      case 'slide': return '🛝';
-      case 'rope_ladder': return '🪜';
-      default: return '📦';
-    }
-  };
   
   // 获取组件规格
   const getSpecifications = () => {
@@ -71,22 +57,16 @@ const ComponentCard: React.FC<ComponentCardProps> = React.memo(({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div
+      <ComponentThumbnail
+        componentId={component.id}
+        size={compact ? 32 : 40}
         style={{
-          width: compact ? 32 : 40,
-          height: compact ? 32 : 40,
-          background: isPlacing ? '#f6ffed' : '#f5f5f5',
           borderRadius: 4,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: compact ? 16 : 20,
           marginRight: 8,
           flexShrink: 0,
+          border: isPlacing ? '2px solid #52c41a' : '1px solid #f0f0f0',
         }}
-      >
-        {getComponentIcon()}
-      </div>
+      />
       
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ 
