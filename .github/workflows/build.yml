@@ -77,10 +77,10 @@ jobs:
           echo "Setting version to: $VERSION"
           # Update package.json
           cd frontend
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
+          sed -i'' -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" package.json
           # Update tauri.conf.json
           cd src-tauri
-          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" tauri.conf.json
+          sed -i'' -e "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/" tauri.conf.json
         shell: bash
 
       - name: Build Tauri app
