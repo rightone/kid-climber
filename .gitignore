@@ -77,10 +77,16 @@ src-tauri/target/
 # Frontend build
 frontend/dist/
 frontend/node_modules/
+frontend/.next/
 
 # Backend build
 backend/kid-climber-server
 backend/kid-climber-server.exe
+backend/*.db
+
+# Root package files (not needed for open source)
+package.json
+package-lock.json
 
 # Documentation (keep only essential docs)
 doc/
