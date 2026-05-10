@@ -112,6 +112,11 @@ release/
 *.jpg
 *.gif
 
+# Allow app icons
+!frontend/src-tauri/icons/*.png
+!frontend/src-tauri/icons/*.ico
+!frontend/src-tauri/icons/*.icns
+
 # Go proxy cache
 GOPATH/
 GOMODCACHE/
