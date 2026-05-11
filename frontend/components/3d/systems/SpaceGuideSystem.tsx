@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { useInteractionStore } from '../../../stores/interactionStore';
 
@@ -110,9 +110,7 @@ const HeightReferencePlane: React.FC<{ y: number; size: number }> = ({ y, size }
 
 // 高度参考线
 const HeightReferenceLine: React.FC<{ y: number; size: number }> = ({ y, size }) => {
-  const lineRef = useRef<THREE.Line>(null);
-  
-  const geometry = useMemo(() => {
+  const lineObj = useMemo(() => {
     const halfSize = size / 2;
     const points = [
       new THREE.Vector3(-halfSize, y, -halfSize),
@@ -121,23 +119,12 @@ const HeightReferenceLine: React.FC<{ y: number; size: number }> = ({ y, size })
       new THREE.Vector3(-halfSize, y, halfSize),
       new THREE.Vector3(-halfSize, y, -halfSize),
     ];
-    const geo = new THREE.BufferGeometry();
-    geo.setFromPoints(points);
-    return geo;
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const material = new THREE.LineBasicMaterial({ color: '#3b82f6', transparent: true, opacity: 0.3 });
+    return new THREE.Line(geometry, material);
   }, [y, size]);
   
-  const material = useMemo(() => {
-    return new THREE.LineBasicMaterial({ color: '#3b82f6', transparent: true, opacity: 0.3 });
-  }, []);
-  
-  useEffect(() => {
-    if (lineRef.current) {
-      lineRef.current.geometry = geometry;
-      lineRef.current.material = material;
-    }
-  }, [geometry, material]);
-  
-  return <primitive ref={lineRef} object={new THREE.Line(geometry, material)} />;
+  return <primitive object={lineObj} />;
 };
 
 // 坐标轴指示器
