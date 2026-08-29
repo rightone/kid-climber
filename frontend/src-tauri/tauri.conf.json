@@ -89,7 +89,9 @@
         "icons/icon.ico"
       ],
       "resources": [],
-      "externalBin": [],
+      "externalBin": [
+        "binaries/kid-climber-server"
+      ],
       "copyright": "Copyright (c) 2026 Kid Climber contributors.",
       "category": "DeveloperTool",
       "shortDescription": "攀爬架结构设计软件",

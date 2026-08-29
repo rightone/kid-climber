@@ -1,8 +1,6 @@
 import { message } from 'antd';
 import { Design, ComponentInstance, Connection, MaterialInventory } from '../types';
-
-// API基础URL
-const API_BASE_URL = 'http://localhost:8080/api';
+import { getBackendApiUrl } from './backendRuntime';
 
 // 通用请求函数
 const request = async <T>(
@@ -10,7 +8,8 @@ const request = async <T>(
   options: RequestInit = {}
 ): Promise<T | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}${url}`, {
+    const apiBaseUrl = await getBackendApiUrl();
+    const response = await fetch(`${apiBaseUrl}${url}`, {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -240,10 +239,11 @@ export const searchDesigns = async (query: string) => {
 // 检查服务器连接
 export const checkServerConnection = async (): Promise<boolean> => {
   try {
-    const response = await fetch(`${API_BASE_URL.replace('/api', '')}/health`, {
+    const apiBaseUrl = await getBackendApiUrl();
+    const response = await fetch(`${apiBaseUrl.slice(0, -4)}/health`, {
       method: 'GET',
-      timeout: 5000,
-    } as RequestInit);
+      signal: AbortSignal.timeout(5000),
+    });
     
     return response.ok;
   } catch (error) {
@@ -254,11 +254,12 @@ export const checkServerConnection = async (): Promise<boolean> => {
 
 // 获取服务器状态
 export const getServerStatus = async () => {
+  const apiBaseUrl = await getBackendApiUrl();
   const isConnected = await checkServerConnection();
   
   return {
     connected: isConnected,
-    url: API_BASE_URL,
+    url: apiBaseUrl,
     timestamp: new Date().toISOString(),
   };
 };

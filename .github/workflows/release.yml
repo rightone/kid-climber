@@ -14,6 +14,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: draft-prerelease-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 env:
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
   NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
@@ -27,41 +31,115 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
       - uses: actions/setup-node@v7
         with:
           node-version: '24'
+      - name: Validate immutable alpha tag and source version
+        shell: bash
+        run: |
+          test "$(git cat-file -t "refs/tags/$RELEASE_TAG")" = tag
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{}")" = "$(git rev-parse HEAD)"
+          VERSION=$(node -p "require('./frontend/package.json').version")
+          test "$RELEASE_TAG" = "v$VERSION"
+          case "$VERSION" in
+            *-alpha.*) ;;
+            *) echo "Only alpha versions may use this draft prerelease workflow" >&2; exit 1 ;;
+          esac
       - name: Check versions, license and official dependency sources
         working-directory: frontend
         run: npm run check:release
 
-  desktop:
+  draft-release:
     needs: public-metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      release_id: ${{ steps.release.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - name: Create or reuse the unique draft prerelease
+        id: release
+        uses: actions/github-script@v8
+        env:
+          NOTES_PATH: .github/release-notes/v3.0.0-alpha.1.md
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('node:fs');
+            const tag = process.env.RELEASE_TAG;
+            const { owner, repo } = context.repo;
+            const matches = (await github.paginate(
+              github.rest.repos.listReleases,
+              { owner, repo, per_page: 100 }
+            )).filter(release => release.tag_name === tag);
+            if (matches.length > 1) {
+              core.setFailed(`More than one release exists for ${tag}`);
+              return;
+            }
+            const notes = fs.readFileSync(process.env.NOTES_PATH, 'utf8');
+            const body = `${notes}\n\n构建验证：[${context.runId}](${process.env.RUN_URL})`;
+            let release;
+            if (matches.length === 1) {
+              release = matches[0];
+              if (!release.draft || !release.prerelease) {
+                core.setFailed('The existing release is not a draft prerelease');
+                return;
+              }
+              release = (await github.rest.repos.updateRelease({
+                owner,
+                repo,
+                release_id: release.id,
+                name: `Kid Climber ${tag.slice(1)}`,
+                body,
+                draft: true,
+                prerelease: true,
+              })).data;
+            } else {
+              release = (await github.rest.repos.createRelease({
+                owner,
+                repo,
+                tag_name: tag,
+                name: `Kid Climber ${tag.slice(1)}`,
+                body,
+                draft: true,
+                prerelease: true,
+              })).data;
+            }
+            core.setOutput('release_id', String(release.id));
+
+  desktop:
+    needs: [public-metadata, draft-release]
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: windows-2025
             target: x86_64-pc-windows-msvc
-            args: --target x86_64-pc-windows-msvc
+            args: --target x86_64-pc-windows-msvc --bundles nsis
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            args: --target x86_64-unknown-linux-gnu
+            args: --target x86_64-unknown-linux-gnu --bundles deb appimage
           - platform: macos-15
             target: aarch64-apple-darwin
-            args: --target aarch64-apple-darwin
+            args: --target aarch64-apple-darwin --bundles dmg
           - platform: macos-15-intel
             target: x86_64-apple-darwin
-            args: --target x86_64-apple-darwin
+            args: --target x86_64-apple-darwin --bundles dmg
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
       - name: Validate tag and source version
         shell: bash
         run: |
           VERSION=$(node -p "require('./frontend/package.json').version")
           test "$RELEASE_TAG" = "v$VERSION"
+          test "$(git rev-parse "refs/tags/$RELEASE_TAG^{}")" = "$(git rev-parse HEAD)"
           case "$VERSION" in
             *-alpha.*) ;;
             *) echo "Only alpha versions may use this draft prerelease workflow" >&2; exit 1 ;;
@@ -76,6 +154,10 @@ jobs:
           node-version: '24'
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
@@ -87,49 +169,202 @@ jobs:
       - uses: swatinem/rust-cache@v2
         with:
           workspaces: frontend/src-tauri -> target
-      - name: Build Tauri installers as a draft prerelease
+      - name: Build native Go sidecar
+        working-directory: frontend
+        env:
+          SIDECAR_TARGET: ${{ matrix.target }}
+        run: npm run prepare:sidecar
+      - name: Smoke test native sidecar health
+        working-directory: frontend
+        env:
+          SIDECAR_TARGET: ${{ matrix.target }}
+        run: npm run smoke:sidecar
+      - name: Build Tauri installers into the existing draft
+        id: tauri
         uses: tauri-apps/tauri-action@v0.6.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: frontend
+          releaseId: ${{ needs.draft-release.outputs.release_id }}
           tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Kid Climber ${{ env.RELEASE_TAG }}
-          releaseBody: Alpha validation build. Source versions are fixed in the tagged commit.
           releaseDraft: true
           prerelease: true
+          assetNamePattern: '[name]_[version]_[platform]_[arch][setup][ext]'
           args: ${{ matrix.args }}
+      - name: Verify sidecar staging and bundle output
+        working-directory: frontend
+        env:
+          SIDECAR_TARGET: ${{ matrix.target }}
+        run: npm run verify:sidecar-bundle
+      - name: Retain installers, raw sidecar and verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-validation-${{ matrix.target }}
+          path: |
+            frontend/src-tauri/target/${{ matrix.target }}/release/bundle
+            frontend/src-tauri/binaries/kid-climber-server-${{ matrix.target }}*
+            frontend/build/release-validation/${{ matrix.target }}.json
+          if-no-files-found: error
+          retention-days: 14
 
-  backend:
-    needs: public-metadata
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: windows-2025
-            artifact: kid-climber-server.exe
-          - platform: ubuntu-22.04
-            artifact: kid-climber-server
-          - platform: macos-15
-            artifact: kid-climber-server
-          - platform: macos-15-intel
-            artifact: kid-climber-server
-    runs-on: ${{ matrix.platform }}
+  verify-draft:
+    needs: [draft-release, desktop]
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ env.RELEASE_TAG }}
-      - uses: actions/setup-go@v7
+      - name: Download all native validation artifacts
+        uses: actions/download-artifact@v8
         with:
-          go-version-file: backend/go.mod
-          cache-dependency-path: backend/go.sum
-      - name: Build Go backend
-        working-directory: backend
+          pattern: release-validation-*
+          path: build/validation-artifacts
+      - name: Validate four embedded-sidecar reports
         shell: bash
-        run: mkdir -p build && go build -o build/${{ matrix.artifact }} ./cmd/server
-      - name: Upload Go backend artifact
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const targets = [
+            'x86_64-pc-windows-msvc',
+            'x86_64-unknown-linux-gnu',
+            'aarch64-apple-darwin',
+            'x86_64-apple-darwin',
+          ];
+          for (const target of targets) {
+            const reportPath = path.join(
+              'build',
+              'validation-artifacts',
+              `release-validation-${target}`,
+              'build',
+              'release-validation',
+              `${target}.json`
+            );
+            const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+            if (report.target !== target ||
+                report.sourceSha256 !== report.bundledSha256 ||
+                !Array.isArray(report.bundleFiles) ||
+                report.bundleFiles.length === 0) {
+              throw new Error(`Invalid sidecar bundle report for ${target}`);
+            }
+          }
+          NODE
+      - name: Validate Draft assets and upload SHA256SUMS
+        id: assets
+        uses: actions/github-script@v8
+        env:
+          RELEASE_ID: ${{ needs.draft-release.outputs.release_id }}
+          NOTES_PATH: .github/release-notes/v3.0.0-alpha.1.md
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const crypto = require('node:crypto');
+            const fs = require('node:fs');
+            const path = require('node:path');
+            const { owner, repo } = context.repo;
+            const releaseId = Number(process.env.RELEASE_ID);
+            const release = (await github.rest.repos.getRelease({
+              owner,
+              repo,
+              release_id: releaseId,
+            })).data;
+            if (!release.draft || !release.prerelease || release.tag_name !== process.env.RELEASE_TAG) {
+              core.setFailed('Release state or tag does not match the validated draft prerelease');
+              return;
+            }
+
+            let assets = await github.paginate(
+              github.rest.repos.listReleaseAssets,
+              { owner, repo, release_id: releaseId, per_page: 100 }
+            );
+            const oldChecksums = assets.filter(asset => asset.name === 'SHA256SUMS');
+            for (const asset of oldChecksums) {
+              await github.rest.repos.deleteReleaseAsset({ owner, repo, asset_id: asset.id });
+            }
+            assets = assets.filter(asset => asset.name !== 'SHA256SUMS');
+            if (assets.length === 0 || assets.some(asset => asset.size <= 0)) {
+              core.setFailed('Draft release assets are missing or empty');
+              return;
+            }
+            if (assets.some(asset => /^kid-climber-server/i.test(asset.name))) {
+              core.setFailed('A raw backend binary was exposed as a public Release asset');
+              return;
+            }
+
+            const names = assets.map(asset => asset.name);
+            const coverage = [
+              /windows.*x86_64|x86_64.*windows/i,
+              /linux.*x86_64|x86_64.*linux/i,
+              /darwin.*aarch64|aarch64.*darwin/i,
+              /darwin.*x86_64|x86_64.*darwin/i,
+            ];
+            if (coverage.some(pattern => !names.some(name => pattern.test(name)))) {
+              core.setFailed(`Release assets do not cover all four native targets: ${names.join(', ')}`);
+              return;
+            }
+
+            const downloadDirectory = path.join('build', 'release-assets');
+            fs.mkdirSync(downloadDirectory, { recursive: true });
+            const checksums = [];
+            for (const asset of assets.sort((left, right) => left.name.localeCompare(right.name))) {
+              const response = await github.request(
+                'GET /repos/{owner}/{repo}/releases/assets/{asset_id}',
+                {
+                  owner,
+                  repo,
+                  asset_id: asset.id,
+                  headers: { accept: 'application/octet-stream' },
+                }
+              );
+              const contents = Buffer.from(response.data);
+              if (contents.length !== asset.size) {
+                core.setFailed(`Downloaded size mismatch for ${asset.name}`);
+                return;
+              }
+              fs.writeFileSync(path.join(downloadDirectory, asset.name), contents);
+              checksums.push(
+                `${crypto.createHash('sha256').update(contents).digest('hex')}  ${asset.name}`
+              );
+            }
+
+            const checksumContents = Buffer.from(`${checksums.join('\n')}\n`);
+            const uploaded = await github.request({
+              method: 'POST',
+              url: release.upload_url.replace('{?name,label}', '?name=SHA256SUMS'),
+              headers: {
+                'content-type': 'application/octet-stream',
+                'content-length': checksumContents.length,
+              },
+              data: checksumContents,
+            });
+            if (!uploaded.data || uploaded.data.size !== checksumContents.length) {
+              core.setFailed('SHA256SUMS upload was not confirmed');
+              return;
+            }
+            fs.writeFileSync(path.join(downloadDirectory, 'SHA256SUMS'), checksumContents);
+
+            const notes = fs.readFileSync(process.env.NOTES_PATH, 'utf8');
+            const body = [
+              notes,
+              `构建验证：[${context.runId}](${process.env.RUN_URL})`,
+              `校验和：[SHA256SUMS](${context.serverUrl}/${owner}/${repo}/releases/download/${release.tag_name}/SHA256SUMS)`,
+            ].join('\n\n');
+            await github.rest.repos.updateRelease({
+              owner,
+              repo,
+              release_id: releaseId,
+              name: `Kid Climber ${release.tag_name.slice(1)}`,
+              body,
+              draft: true,
+              prerelease: true,
+            });
+            core.setOutput('asset_count', String(assets.length + 1));
+      - name: Retain independently downloaded Draft assets
         uses: actions/upload-artifact@v7
         with:
-          name: backend-${{ matrix.platform }}
-          path: backend/build/${{ matrix.artifact }}
+          name: validated-draft-assets
+          path: build/release-assets
+          if-no-files-found: error
           retention-days: 14

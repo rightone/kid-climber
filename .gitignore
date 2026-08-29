@@ -18,6 +18,7 @@ frontend/dist/
 frontend/node_modules/
 frontend/.next/
 frontend/src-tauri/target/
+frontend/src-tauri/binaries/kid-climber-server-*
 *.tsbuildinfo
 
 # Backend build state
