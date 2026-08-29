@@ -1,6 +1,6 @@
 # Third-party licenses
 
-Kid Climber includes third-party software and a bundled font. Those works remain under their own licenses. This inventory covers the direct runtime and build dependencies used by the `3.0.0-alpha.1` source snapshot; exact transitive versions are recorded in the committed npm, Go and Cargo lock files.
+Kid Climber includes third-party software and a bundled font. Those works remain under their own licenses. This inventory covers the direct runtime and build dependencies used by the `3.0.0-alpha.2` source snapshot; exact transitive versions are recorded in the committed npm, Go and Cargo lock files.
 
 ## Frontend runtime
 

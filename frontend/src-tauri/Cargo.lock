@@ -1956,7 +1956,7 @@ dependencies = [
 
 [[package]]
 name = "kid-climber"
-version = "3.0.0-alpha.1"
+version = "3.0.0-alpha.2"
 dependencies = [
  "serde",
  "serde_json",

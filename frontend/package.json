@@ -1,7 +1,7 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "3.0.0-alpha.1",
+  "version": "3.0.0-alpha.2",
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",

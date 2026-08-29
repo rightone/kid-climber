@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing version tag to build, for example v3.0.0-alpha.1
+        description: Existing version tag to build, for example v3.0.0-alpha.2
         required: true
         type: string
 
@@ -63,7 +63,6 @@ jobs:
         id: release
         uses: actions/github-script@v8
         env:
-          NOTES_PATH: .github/release-notes/v3.0.0-alpha.1.md
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -79,7 +78,7 @@ jobs:
               core.setFailed(`More than one release exists for ${tag}`);
               return;
             }
-            const notes = fs.readFileSync(process.env.NOTES_PATH, 'utf8');
+            const notes = fs.readFileSync(`.github/release-notes/${tag}.md`, 'utf8');
             const body = `${notes}\n\n构建验证：[${context.runId}](${process.env.RUN_URL})`;
             let release;
             if (matches.length === 1) {
@@ -255,7 +254,6 @@ jobs:
         uses: actions/github-script@v8
         env:
           RELEASE_ID: ${{ needs.draft-release.outputs.release_id }}
-          NOTES_PATH: .github/release-notes/v3.0.0-alpha.1.md
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -295,12 +293,13 @@ jobs:
 
             const names = assets.map(asset => asset.name);
             const coverage = [
-              /windows.*x86_64|x86_64.*windows/i,
-              /linux.*x86_64|x86_64.*linux/i,
-              /darwin.*aarch64|aarch64.*darwin/i,
-              /darwin.*x86_64|x86_64.*darwin/i,
+              { platform: /windows/i, architecture: /(?:x86_64|amd64|x64)/i },
+              { platform: /linux/i, architecture: /(?:x86_64|amd64|x64)/i },
+              { platform: /darwin/i, architecture: /(?:aarch64|arm64)/i },
+              { platform: /darwin/i, architecture: /(?:x86_64|amd64|x64)/i },
             ];
-            if (coverage.some(pattern => !names.some(name => pattern.test(name)))) {
+            if (coverage.some(({ platform, architecture }) =>
+              !names.some(name => platform.test(name) && architecture.test(name)))) {
               core.setFailed(`Release assets do not cover all four native targets: ${names.join(', ')}`);
               return;
             }
@@ -345,7 +344,10 @@ jobs:
             }
             fs.writeFileSync(path.join(downloadDirectory, 'SHA256SUMS'), checksumContents);
 
-            const notes = fs.readFileSync(process.env.NOTES_PATH, 'utf8');
+            const notes = fs.readFileSync(
+              `.github/release-notes/${release.tag_name}.md`,
+              'utf8'
+            );
             const body = [
               notes,
               `构建验证：[${context.runId}](${process.env.RUN_URL})`,
