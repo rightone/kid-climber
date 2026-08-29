@@ -62,7 +62,7 @@ fn set_failed(app: &AppHandle, generation: u64, message: &str) {
             runtime.api_url = None;
             runtime.message = Some(message.to_string());
         }
-    }
+    };
 }
 
 fn stop_backend_process(app: &AppHandle) {
@@ -165,7 +165,7 @@ fn start_backend_process(app: &AppHandle) -> Result<BackendStatus, String> {
                             runtime.api_url = Some(ready.api_url);
                             runtime.message = None;
                         }
-                    }
+                    };
                 }
                 CommandEvent::Terminated(_) => {
                     let state = event_app.state::<BackendState>();
