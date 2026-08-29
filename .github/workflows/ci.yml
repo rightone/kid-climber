@@ -1,0 +1,123 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+  GOPROXY: https://proxy.golang.org,direct
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
+jobs:
+  public-metadata:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Check versions, license and official dependency sources
+        working-directory: frontend
+        run: npm run check:release
+      - name: Write public snapshot report
+        shell: bash
+        run: |
+          mkdir -p build/reports
+          git ls-files | LC_ALL=C sort > build/reports/public-files.txt
+          git ls-files -z | xargs -0 sha256sum > build/reports/source-sha256.txt
+      - name: Upload public snapshot report
+        uses: actions/upload-artifact@v7
+        with:
+          name: public-snapshot-report
+          path: build/reports
+          retention-days: 14
+
+  frontend:
+    needs: public-metadata
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Run 122 system tests
+        working-directory: frontend
+        run: npm test
+      - name: Build production frontend
+        working-directory: frontend
+        run: npm run build
+      - name: Enforce ESLint baseline
+        working-directory: frontend
+        run: npm run lint:baseline
+      - name: Upload frontend build and checks
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: frontend-and-eslint
+          path: |
+            frontend/dist
+            frontend/eslint-report.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  backend:
+    needs: public-metadata
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Test Go backend
+        working-directory: backend
+        run: go test ./...
+      - name: Build Go backend
+        working-directory: backend
+        run: mkdir -p build && go build -o build/kid-climber-server ./cmd/server
+      - name: Upload Go backend
+        uses: actions/upload-artifact@v7
+        with:
+          name: kid-climber-server-linux
+          path: backend/build/kid-climber-server
+          retention-days: 14
+
+  desktop-check:
+    needs: public-metadata
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Rust 1.94.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+      - name: Check Tauri crate with lockfile
+        working-directory: frontend/src-tauri
+        run: cargo check --locked

@@ -1,0 +1,80 @@
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+dist/
+build/
+target/
+release/
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+
+# Frontend and desktop build state
+frontend/dist/
+frontend/node_modules/
+frontend/.next/
+frontend/src-tauri/target/
+*.tsbuildinfo
+
+# Backend build state
+backend/build/
+backend/kid-climber-server
+backend/kid-climber-server.exe
+backend/*.db
+
+# Environment and local data
+.env
+.env.local
+.env.*.local
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs, caches, coverage, and temporary output
+*.log
+logs/
+.cache/
+*.cache
+coverage/
+*.cover
+.coverage
+htmlcov/
+/tmp/
+/temp/
+/output/
+*.tmp
+*.temp
+
+# Test and review tools
+.playwright-mcp/
+.playwright-cli/
+screenshots/
+
+# Package archives
+*.tgz
+*.tar.gz
+*.zip
+
+# Editor, OS, and backup files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.bak
+*.backup
+*.orig
+
+# Go local workspace state
+go.work
+go.work.sum
+GOPATH/
+GOMODCACHE/

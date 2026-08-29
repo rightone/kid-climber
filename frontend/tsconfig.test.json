@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "ignoreDeprecations": "6.0",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "jsx": "react-jsx",
+    "types": ["node"],
+    "outDir": ".test-dist",
+    "rootDir": ".",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "test/**/*.ts",
+    "systems/ConstructionEngine.ts",
+    "systems/AssemblyStepSystem.ts",
+    "systems/ExportManager.ts",
+    "stores/componentLibrary.ts",
+    "types/**/*.ts",
+    "utils/calculationUtils.ts"
+  ]
+}

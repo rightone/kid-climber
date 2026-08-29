@@ -1,0 +1,135 @@
+name: Draft prerelease
+
+on:
+  push:
+    tags:
+      - 'v3.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build, for example v3.0.0-alpha.1
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+  GOPROXY: https://proxy.golang.org,direct
+  CARGO_REGISTRIES_CRATES_IO_PROTOCOL: sparse
+
+jobs:
+  public-metadata:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: Check versions, license and official dependency sources
+        working-directory: frontend
+        run: npm run check:release
+
+  desktop:
+    needs: public-metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-2025
+            target: x86_64-pc-windows-msvc
+            args: --target x86_64-pc-windows-msvc
+          - platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            args: --target x86_64-unknown-linux-gnu
+          - platform: macos-15
+            target: aarch64-apple-darwin
+            args: --target aarch64-apple-darwin
+          - platform: macos-15-intel
+            target: x86_64-apple-darwin
+            args: --target x86_64-apple-darwin
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - name: Validate tag and source version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./frontend/package.json').version")
+          test "$RELEASE_TAG" = "v$VERSION"
+          case "$VERSION" in
+            *-alpha.*) ;;
+            *) echo "Only alpha versions may use this draft prerelease workflow" >&2; exit 1 ;;
+          esac
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev libappindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Install Rust 1.94.1
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.94.1
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: frontend/src-tauri -> target
+      - name: Build Tauri installers as a draft prerelease
+        uses: tauri-apps/tauri-action@v0.6.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: frontend
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Kid Climber ${{ env.RELEASE_TAG }}
+          releaseBody: Alpha validation build. Source versions are fixed in the tagged commit.
+          releaseDraft: true
+          prerelease: true
+          args: ${{ matrix.args }}
+
+  backend:
+    needs: public-metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-2025
+            artifact: kid-climber-server.exe
+          - platform: ubuntu-22.04
+            artifact: kid-climber-server
+          - platform: macos-15
+            artifact: kid-climber-server
+          - platform: macos-15-intel
+            artifact: kid-climber-server
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Build Go backend
+        working-directory: backend
+        shell: bash
+        run: mkdir -p build && go build -o build/${{ matrix.artifact }} ./cmd/server
+      - name: Upload Go backend artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-${{ matrix.platform }}
+          path: backend/build/${{ matrix.artifact }}
+          retention-days: 14

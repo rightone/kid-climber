@@ -1,0 +1,22 @@
+Kid Climber
+Copyright (c) 2026 Kid Climber contributors.
+
+This program is licensed under the GNU Affero General Public License,
+version 3 only (AGPL-3.0-only), with the following additional terms under
+sections 7(b) and 7(c):
+
+1. Appropriate legal notices and author attributions must be preserved.
+2. Every interactive user interface must retain a prominent, readable notice:
+
+   Kid Climber — an open-source climbing-frame design project by Kid Climber contributors.
+
+3. Every interactive user interface must display the original project URL:
+
+   https://github.com/rightone/kid-climber
+
+4. Modified versions must not misrepresent the origin of the work and must
+   clearly mark that they have been modified.
+
+These terms do not limit the permissions granted by the AGPL beyond the
+additional-term categories allowed by section 7. Third-party components remain
+under their respective licenses; see THIRD-PARTY-LICENSES.md.

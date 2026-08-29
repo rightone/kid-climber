@@ -1,0 +1,943 @@
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  background-color: #f0f2f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 选中文本样式 */
+::selection {
+  background-color: #1890ff;
+  color: #fff;
+}
+
+/* 聚焦样式 */
+:focus {
+  outline: none;
+}
+
+/* 链接样式 */
+a {
+  color: #1890ff;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #40a9ff;
+}
+
+/* 按钮样式优化 */
+.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 卡片样式优化 */
+.ant-card {
+  border-radius: 4px;
+}
+
+/* 输入框样式优化 */
+.ant-input,
+.ant-input-number {
+  border-radius: 4px;
+}
+
+/* 表单项样式优化 */
+.ant-form-item {
+  margin-bottom: 12px;
+}
+
+/* 分割线样式优化 */
+.ant-divider {
+  margin: 8px 0;
+}
+
+/* 标签样式优化 */
+.ant-tag {
+  border-radius: 4px;
+}
+
+/* 面板样式优化 */
+.ant-collapse > .ant-collapse-item > .ant-collapse-header {
+  padding: 8px 12px;
+}
+
+/* 工具栏按钮样式 */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toolbar-btn:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.toolbar-btn.active {
+  background: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
+}
+
+.toolbar-btn:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+/* 组件库项样式 */
+.component-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.component-item:hover {
+  border-color: #1890ff;
+  background: #f0f8ff;
+}
+
+.component-item:active {
+  cursor: grabbing;
+}
+
+.component-item-icon {
+  width: 40px;
+  height: 40px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.component-item-info {
+  flex: 1;
+}
+
+.component-item-name {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.component-item-desc {
+  font-size: 11px;
+  color: #666;
+}
+
+/* 属性面板样式 */
+.properties-panel {
+  padding: 16px;
+}
+
+.properties-panel-title {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 16px;
+}
+
+.properties-panel-section {
+  margin-bottom: 16px;
+}
+
+.properties-panel-section-title {
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+/* 状态栏样式 */
+.status-bar {
+  height: 24px;
+  background: #f0f0f0;
+  border-top: 1px solid #d9d9d9;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 12px;
+  color: #666;
+}
+
+.status-bar-item {
+  margin-right: 16px;
+}
+
+/* 提示框样式 */
+.hint-box {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  pointer-events: none;
+}
+
+/* 3D视图样式 */
+.scene-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.scene-controls {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+}
+
+.scene-info {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    display: none;
+  }
+  
+  .toolbar-responsive {
+    flex-wrap: wrap;
+  }
+}
+
+/* 模板列表 */
+.template-manager {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: calc(100vh - 116px);
+  background: #fff;
+}
+
+.template-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: none;
+  gap: 8px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.template-manager-list {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px 20px;
+}
+
+.template-category {
+  margin-bottom: 12px;
+}
+
+.template-category:last-child {
+  margin-bottom: 0;
+}
+
+.template-category-title {
+  display: block;
+  margin: 0 2px 7px;
+  color: #334155;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.template-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.template-card {
+  width: 100%;
+  min-height: 100px;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.template-card:hover {
+  border-color: #93c5fd;
+  background: #f8fbff;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.08);
+}
+
+.template-card:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.template-card-thumbnail {
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.template-card-thumbnail-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 20px;
+}
+
+.template-card-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.template-card-title {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.template-card-description {
+  min-height: 34px;
+  overflow: hidden;
+  display: -webkit-box;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 17px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.template-card-meta {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.template-card-status {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.template-card-status.is-valid {
+  background: #ecfdf3;
+  color: #15803d;
+}
+
+.template-card-status.is-invalid {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+/* 模板预览 */
+.template-preview-modal {
+  max-width: calc(100vw - 32px);
+}
+
+.template-preview-modal .ant-modal-body {
+  min-width: 0;
+}
+
+.template-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.template-preview-canvas-shell {
+  position: relative;
+  width: 100%;
+  height: clamp(300px, 42vh, 420px);
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f4f7fb;
+}
+
+.template-preview-canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.template-preview-reset {
+  position: absolute !important;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  border-color: rgba(148, 163, 184, 0.55) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(6px);
+}
+
+.template-preview-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.template-preview-summary {
+  min-height: 44px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) repeat(3, max-content);
+  align-items: center;
+  gap: 16px;
+  padding: 9px 12px;
+  border: 1px solid;
+  border-radius: 10px;
+}
+
+.template-preview-summary.is-valid {
+  border-color: #b7eb8f;
+  background: #f6ffed;
+  color: #237804;
+}
+
+.template-preview-summary.is-invalid {
+  border-color: #ffccc7;
+  background: #fff2f0;
+  color: #cf1322;
+}
+
+.template-preview-validation {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.template-preview-stat {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.template-preview-stat strong {
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.template-preview-error-detail,
+.template-preview-warning {
+  display: block;
+  margin-top: -4px;
+}
+
+.template-preview-materials {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: start;
+  gap: 8px;
+}
+
+.template-preview-materials-label {
+  line-height: 24px;
+}
+
+.template-preview-material-tags {
+  min-width: 0;
+  max-height: 52px;
+  overflow: hidden;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 2px;
+}
+
+.template-preview-material-tags.is-expanded {
+  max-height: none;
+}
+
+.template-preview-material-tags .ant-tag {
+  margin-inline-end: 4px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.template-preview-material-toggle {
+  height: 24px !important;
+  padding-inline: 4px !important;
+}
+
+.template-preview-footer {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-preview-footer-actions {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (max-width: 700px) {
+  .template-preview-canvas-shell {
+    height: clamp(280px, 40vh, 360px);
+  }
+
+  .template-preview-summary {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px 12px;
+  }
+
+  .template-preview-validation {
+    grid-column: 1 / -1;
+  }
+
+  .template-preview-materials {
+    grid-template-columns: max-content minmax(0, 1fr);
+  }
+
+  .template-preview-material-toggle {
+    grid-column: 2;
+    justify-self: start;
+  }
+
+  .template-preview-footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .template-preview-footer-actions {
+    flex-wrap: wrap;
+  }
+
+  .template-preview-footer-actions .ant-btn {
+    flex: 1 1 150px;
+  }
+}
+
+/* Assembly guide: industrial, canvas-first delivery workspace. */
+.assembly-guide-panel {
+  padding: 18px;
+  color: #0f172a;
+}
+
+.assembly-guide-panel-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.assembly-guide-panel-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 20px;
+  background: #0f172a;
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.08);
+}
+
+.assembly-guide-issue-list {
+  margin: 12px 0;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.assembly-guide-stats {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.assembly-guide-stats .ant-statistic {
+  min-width: 0;
+  padding: 11px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.assembly-guide-stats .ant-statistic-title {
+  font-size: 12px;
+}
+
+.assembly-guide-stats .ant-statistic-content {
+  font-size: 19px;
+}
+
+.assembly-guide-warning-list {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-left: 4px solid #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 12px;
+}
+
+.assembly-guide-panel-progress {
+  margin-top: 12px;
+}
+
+.assembly-guide-panel-note {
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.assembly-guide-modal {
+  top: 12px;
+  padding-bottom: 0;
+  max-width: none;
+}
+
+.assembly-guide-modal .ant-modal-container {
+  height: calc(100vh - 24px);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.assembly-guide-modal .ant-modal-body {
+  height: 100%;
+}
+
+.assembly-guide-modal .ant-modal-close {
+  top: 15px;
+  right: 15px;
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.assembly-guide-workspace {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.assembly-guide-header {
+  min-height: 68px;
+  padding: 12px 62px 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.assembly-guide-export-progress {
+  padding: 7px 18px;
+  display: grid;
+  grid-template-columns: minmax(160px, 320px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #bfdbfe;
+  background: #eff6ff;
+}
+
+.assembly-guide-stale-banner {
+  padding: 8px 18px;
+  color: #991b1b;
+  background: #fef2f2;
+  border-bottom: 1px solid #fecaca;
+}
+
+.assembly-guide-main {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  background: #e9eef5;
+}
+
+.assembly-guide-canvas-shell {
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  border-right: 1px solid #cbd5e1;
+  overflow: hidden;
+}
+
+.assembly-guide-canvas-shell canvas {
+  display: block;
+}
+
+.assembly-guide-canvas-loading {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #64748b;
+  background: #f4f7fb;
+  font-size: 13px;
+}
+
+.assembly-guide-step-chip {
+  position: absolute;
+  left: 18px;
+  top: 16px;
+  max-width: calc(100% - 36px);
+  padding: 8px 13px;
+  border-radius: 7px;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+}
+
+.assembly-callout-badge {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #0f172a;
+  background: #f59e0b;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
+  font-weight: 800;
+  user-select: none;
+}
+
+.assembly-guide-rail {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(160px, 42%) minmax(0, 1fr);
+  background: #fff;
+}
+
+.assembly-guide-step-list {
+  min-height: 0;
+  padding: 10px;
+  overflow: auto;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.assembly-step-item {
+  width: 100%;
+  min-height: 54px;
+  margin-bottom: 7px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #334155;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.assembly-step-item:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+
+.assembly-step-item.is-active {
+  color: #0f172a;
+  background: #fff;
+  border-color: #1677ff;
+  box-shadow: inset 4px 0 0 #1677ff;
+}
+
+.assembly-step-number {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: #fff;
+  background: #64748b;
+  font-weight: 800;
+}
+
+.assembly-step-item.is-active .assembly-step-number {
+  background: #1677ff;
+}
+
+.assembly-step-copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.assembly-step-copy strong,
+.assembly-step-copy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assembly-step-copy small {
+  color: #64748b;
+}
+
+.assembly-guide-instructions {
+  min-height: 0;
+  padding: 15px 17px;
+  overflow: auto;
+}
+
+.assembly-guide-instructions p {
+  margin: 10px 0 16px;
+  color: #475569;
+  line-height: 1.65;
+}
+
+.assembly-guide-parts {
+  margin: 8px 0 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assembly-guide-parts > span {
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #334155;
+  background: #f1f5f9;
+  font-size: 12px;
+}
+
+.assembly-guide-callouts,
+.assembly-guide-checks {
+  margin: 8px 0 16px;
+  padding-left: 21px;
+  color: #475569;
+}
+
+.assembly-guide-callouts li,
+.assembly-guide-checks li {
+  margin-bottom: 7px;
+  line-height: 1.45;
+}
+
+.assembly-guide-checks {
+  padding-left: 0;
+  list-style: none;
+}
+
+.assembly-guide-checks .anticon {
+  color: #22c55e;
+}
+
+.assembly-guide-footer {
+  min-height: 58px;
+  padding: 10px 18px;
+  display: grid;
+  grid-template-columns: 132px 1fr 132px;
+  align-items: center;
+  gap: 12px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .assembly-guide-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .assembly-guide-main {
+    grid-template-columns: minmax(0, 1fr) 290px;
+  }
+
+  .assembly-guide-rail {
+    grid-template-rows: minmax(130px, 36%) minmax(0, 1fr);
+  }
+}
