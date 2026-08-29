@@ -34,7 +34,6 @@ export const getBackendStatus = async (): Promise<BackendStatus> => {
   }
   return invoke<BackendStatus>('get_backend_status');
 };
-
 export const waitForBackend = async (
   timeoutMs: number = START_TIMEOUT_MS
 ): Promise<BackendStatus> => {
@@ -90,4 +89,3 @@ export const exitDesktopApp = async (): Promise<void> => {
     await appWindow.close();
   }
 };
-

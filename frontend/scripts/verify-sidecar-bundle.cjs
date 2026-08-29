@@ -8,7 +8,6 @@ const target = process.env.SIDECAR_TARGET;
 if (!target) {
   throw new Error('SIDECAR_TARGET is required');
 }
-
 const frontendRoot = path.resolve(__dirname, '..');
 const extension = target.includes('windows') ? '.exe' : '';
 const sourcePath = path.join(
@@ -116,4 +115,3 @@ try {
   }
   fs.rmSync(temporaryDirectory, { recursive: true, force: true });
 }
-

@@ -65,4 +65,3 @@ if (!fs.statSync(outputPath).isFile() || fs.statSync(outputPath).size === 0) {
 }
 
 console.log(`Prepared Tauri sidecar for ${target}`);
-
