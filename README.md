@@ -1,15 +1,13 @@
 # Kid Climber
 
-Kid Climber 是一款面向销售、门店和方案人员的开源攀爬架设计工具。它把高级结构安装组织成“搭积木”式任务，并提供离线 3D 设计、材料清单和装配输出。
+Kid Climber 是一款开源的攀爬架快速搭建与设计工具。它通过“搭积木”式交互，帮助用户快速组合各类攀爬架结构，并提供离线 3D 设计、材料清单和装配输出。
 
 [![CI](https://github.com/rightone/kid-climber/actions/workflows/ci.yml/badge.svg)](https://github.com/rightone/kid-climber/actions/workflows/ci.yml)
 [![License: AGPL-3.0-only](https://img.shields.io/badge/License-AGPL--3.0--only-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-## 当前版本
+## 项目状态
 
-本仓库从 `3.0.0-alpha.1` 和一个全新的根提交开始，不迁入旧 GitHub 仓库的提交历史、标签或 Release。过去已经公开发布的版本仍保留其原有 GPL 授权；新的源代码快照采用 `AGPL-3.0-only`。
-
-Alpha 版本用于验证新的高级搭建闭环，设计文件和交互仍可能调整。
+当前版本处于 Alpha 阶段，功能、设计文件格式和交互仍可能调整。
 
 ## 主要能力
 
@@ -68,7 +66,7 @@ cd ../frontend/src-tauri
 cargo check --locked
 ```
 
-当前 ESLint 历史基线是 `103 errors / 1 warning`。CI 只允许问题数量下降，任何新增问题都会失败；后续会逐步清零。
+CI 会验证前端测试、构建和 ESLint 门禁、后端测试与构建，以及桌面端 Rust 检查。
 
 ## 发布说明
 
