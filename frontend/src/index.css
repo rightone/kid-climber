@@ -258,6 +258,39 @@ a:hover {
   }
 }
 
+/* 组件侧栏和抽屉的受控滚动区域 */
+.component-panel-tabs {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.component-panel-tabs > .ant-tabs-content-holder {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.component-panel-tabs > .ant-tabs-content-holder > .ant-tabs-content,
+.component-panel-tabs > .ant-tabs-content-holder > .ant-tabs-content > .ant-tabs-tabpane {
+  height: 100%;
+  min-height: 0;
+}
+
+.component-library {
+  min-height: 0;
+}
+
+.component-library-header {
+  flex: none;
+}
+
+.component-library-list {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 /* 模板列表 */
 .template-manager {
   display: flex;
@@ -630,6 +663,32 @@ a:hover {
   border: 1px solid #fecaca;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.assembly-guide-issue-item {
+  align-items: flex-start;
+}
+
+.assembly-guide-issue-content {
+  width: 100%;
+}
+
+.assembly-guide-issue-detail {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.assembly-guide-issue-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.assembly-guide-issue-actions .ant-btn {
+  padding-inline: 0;
 }
 
 .assembly-guide-stats {

@@ -63,6 +63,8 @@ export interface AssemblyGuideIssue {
   message: string;
   repairable: boolean;
   componentIds: string[];
+  location?: [number, number, number];
+  detail?: string;
 }
 
 export interface AssemblyGuideStep {
@@ -744,6 +746,8 @@ class AssemblyStepSystem {
         message: issue.message,
         repairable: issue.repairable,
         componentIds: issue.componentIds,
+        location: issue.location,
+        detail: issue.detail,
       })),
       ...floatingSubassemblies.map(item => ({
         id: `floating:${item.id}`,

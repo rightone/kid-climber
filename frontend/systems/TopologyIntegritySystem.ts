@@ -5,9 +5,16 @@ import type {
   Connection,
   ConnectionPoint,
 } from '../types';
-import { getComponentById } from '../stores/componentLibrary';
+import {
+  getComponentById,
+  isStructuralConnectionPoint,
+} from '../stores/componentLibrary';
 import { getWorldDirection, getWorldPosition } from './ConstructionEngine';
-import type { TopologyPatch } from './ConnectorTopologySystem';
+import {
+  connectorDirectionKey,
+  connectorTopologySystem,
+  type TopologyPatch,
+} from './ConnectorTopologySystem';
 
 export type TopologyIssueKind =
   | 'missing-connection'
@@ -37,6 +44,8 @@ export interface TopologyIssue {
     pointId: string;
   }>;
   distanceCm?: number;
+  location?: [number, number, number];
+  detail?: string;
   repairable: boolean;
   message: string;
 }
@@ -68,6 +77,7 @@ const AUTO_CONNECT_DISTANCE_CM = 0.5;
 const NEAR_MISS_DISTANCE_CM = 3;
 const DIRECTION_DOT_THRESHOLD = -0.95;
 const DUPLICATE_NODE_DISTANCE_CM = 0.5;
+const CONNECTOR_MANAGEMENT_PROPERTY = 'connectorManagement';
 
 const endpointKey = (componentId: string, pointId: string) =>
   `${componentId}:${pointId}`;
@@ -313,6 +323,432 @@ const findSafeNearMissTranslation = (input: {
   return null;
 };
 
+const MERGEABLE_CONNECTOR_IDS = new Set([
+  'connector_straight',
+  'connector_L',
+  'connector_T',
+  'connector_3way',
+  'connector_4way',
+  'connector_5way',
+]);
+
+interface DuplicateNodeMergeAssessment {
+  patch: TopologyPatch | null;
+  detail: string;
+}
+
+const getDuplicateNodeGroups = (
+  components: ComponentInstance[]
+): ComponentInstance[][] => {
+  const connectors = components
+    .filter(component => getComponentById(component.componentId)?.category === 'connector')
+    .slice()
+    .sort((left, right) => left.instanceId.localeCompare(right.instanceId));
+  const visited = new Set<string>();
+  const groups: ComponentInstance[][] = [];
+
+  connectors.forEach(seed => {
+    if (visited.has(seed.instanceId)) return;
+    const group: ComponentInstance[] = [];
+    const queue = [seed];
+    visited.add(seed.instanceId);
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      group.push(current);
+      connectors.forEach(candidate => {
+        if (visited.has(candidate.instanceId)) return;
+        if (distance(current.position, candidate.position) > DUPLICATE_NODE_DISTANCE_CM) {
+          return;
+        }
+        visited.add(candidate.instanceId);
+        queue.push(candidate);
+      });
+    }
+
+    if (group.length > 1) groups.push(group);
+  });
+
+  return groups;
+};
+
+const getDuplicateNodeLocation = (
+  group: ComponentInstance[]
+): [number, number, number] => [
+  group.reduce((sum, component) => sum + component.position[0], 0) / group.length,
+  group.reduce((sum, component) => sum + component.position[1], 0) / group.length,
+  group.reduce((sum, component) => sum + component.position[2], 0) / group.length,
+];
+
+const getDuplicateNodeMaximumDistance = (group: ComponentInstance[]) => {
+  let maximumDistance = 0;
+  group.forEach((left, leftIndex) => {
+    group.slice(leftIndex + 1).forEach(right => {
+      maximumDistance = Math.max(maximumDistance, distance(left.position, right.position));
+    });
+  });
+  return maximumDistance;
+};
+
+const mergeConnectorProperties = (
+  group: ComponentInstance[]
+): ComponentInstance['properties'] | null => {
+  const merged: Record<string, unknown> = {};
+  const keys = new Set(
+    group.flatMap(component => Object.keys(component.properties ?? {}))
+  );
+  keys.delete(CONNECTOR_MANAGEMENT_PROPERTY);
+
+  for (const key of keys) {
+    const values = group
+      .map(component => component.properties?.[key])
+      .filter(value => value !== undefined);
+    const serializedValues = new Set(values.map(value => JSON.stringify(value)));
+    if (serializedValues.size > 1) return null;
+    if (values.length > 0) merged[key] = values[0];
+  }
+
+  if (
+    group.every(
+      component => component.properties?.[CONNECTOR_MANAGEMENT_PROPERTY] === 'auto'
+    )
+  ) {
+    merged[CONNECTOR_MANAGEMENT_PROPERTY] = 'auto';
+  }
+
+  return Object.keys(merged).length > 0 ? merged : undefined;
+};
+
+const buildPortsByDirection = (
+  componentId: string,
+  rotation: [number, number, number]
+) => {
+  const definition = getComponentById(componentId);
+  if (!definition) return null;
+  const portsByDirection: Record<string, string> = {};
+  for (const point of definition.connectionPoints.filter(isStructuralConnectionPoint)) {
+    const key = connectorDirectionKey(getWorldDirection(rotation, point.direction));
+    if (!key || portsByDirection[key]) return null;
+    portsByDirection[key] = point.id;
+  }
+  return portsByDirection;
+};
+
+const createDuplicateNodeMergeAssessment = (
+  input: AuditTopologyInput,
+  group: ComponentInstance[]
+): DuplicateNodeMergeAssessment => {
+  if (group.some(component => !MERGEABLE_CONNECTOR_IDS.has(component.componentId))) {
+    return {
+      patch: null,
+      detail: '包含非标准拓扑接头，不能自动判断端口映射。',
+    };
+  }
+  const referenceScale = JSON.stringify(group[0].scale);
+  if (
+    group.some(
+      component =>
+        JSON.stringify(component.scale) !== referenceScale ||
+        component.color !== group[0].color
+    )
+  ) {
+    return {
+      patch: null,
+      detail: '接头的缩放或颜色属性不同，需要人工确认保留项。',
+    };
+  }
+
+  const mergedProperties = mergeConnectorProperties(group);
+  if (mergedProperties === null) {
+    return {
+      patch: null,
+      detail: '接头属于不同结构组或具有冲突属性，不能自动合并。',
+    };
+  }
+
+  const groupIds = new Set(group.map(component => component.instanceId));
+  const connectionCounts = new Map(
+    group.map(component => [
+      component.instanceId,
+      input.connections.filter(connection =>
+        connection.source.componentId === component.instanceId ||
+        connection.target.componentId === component.instanceId
+      ).length,
+    ])
+  );
+  const keeper = group.slice().sort((left, right) => {
+    const countDifference =
+      (connectionCounts.get(right.instanceId) ?? 0) -
+      (connectionCounts.get(left.instanceId) ?? 0);
+    return countDifference || left.instanceId.localeCompare(right.instanceId);
+  })[0];
+  const endpoints = collectEndpoints(input.components);
+  const endpointByKey = new Map(
+    endpoints.map(endpoint => [endpointKey(endpoint.componentId, endpoint.pointId), endpoint])
+  );
+  const incidents: Array<{
+    connection: Connection;
+    side: 'source' | 'target';
+    endpoint: TopologyEndpointRef;
+    directionKey?: string;
+  }> = [];
+  const structuralDirections = new Map<string, [number, number, number]>();
+
+  for (const connection of input.connections) {
+    const sourceInGroup = groupIds.has(connection.source.componentId);
+    const targetInGroup = groupIds.has(connection.target.componentId);
+    if (!sourceInGroup && !targetInGroup) continue;
+    if (sourceInGroup && targetInGroup) {
+      return {
+        patch: null,
+        detail: '重叠接头之间存在连接记录，需要人工确认后处理。',
+      };
+    }
+    const side = sourceInGroup ? 'source' as const : 'target' as const;
+    const reference = connection[side];
+    const endpoint = endpointByKey.get(endpointKey(reference.componentId, reference.pointId));
+    const opposite = endpointByKey.get(endpointKey(
+      connection[side === 'source' ? 'target' : 'source'].componentId,
+      connection[side === 'source' ? 'target' : 'source'].pointId
+    ));
+    if (!endpoint || !opposite) {
+      return {
+        patch: null,
+        detail: '接头包含悬空连接引用，需要先修复连接记录。',
+      };
+    }
+    if (endpoint.role === 'board-mount') {
+      incidents.push({ connection, side, endpoint });
+      continue;
+    }
+    const directionKey = connectorDirectionKey(endpoint.direction);
+    if (!directionKey) {
+      return {
+        patch: null,
+        detail: '接头包含非标准方向端口，不能自动合并。',
+      };
+    }
+    if (structuralDirections.has(directionKey)) {
+      return {
+        patch: null,
+        detail: `多个连接同时占用 ${directionKey} 方向端口，不能无损合并。`,
+      };
+    }
+    structuralDirections.set(directionKey, endpoint.direction);
+    incidents.push({ connection, side, endpoint, directionKey });
+  }
+
+  let replacementComponentId = keeper.componentId;
+  let replacementRotation = keeper.rotation;
+  let portsByDirection = buildPortsByDirection(
+    replacementComponentId,
+    replacementRotation
+  );
+  const requiredDirections = [...structuralDirections.values()];
+  if (
+    requiredDirections.length >= 2 &&
+    (!portsByDirection || requiredDirections.some(direction => {
+      const key = connectorDirectionKey(direction);
+      return !key || !portsByDirection?.[key];
+    }))
+  ) {
+    const resolution = connectorTopologySystem.resolveConnectorTopology({
+      requiredDirections,
+      currentConnector: keeper,
+    });
+    if (!resolution) {
+      return {
+        patch: null,
+        detail: '现有连接方向无法映射到单个标准接头。',
+      };
+    }
+    replacementComponentId = resolution.connectorComponentId;
+    replacementRotation = resolution.rotation;
+    portsByDirection = resolution.portsByDirection;
+  }
+  if (
+    !portsByDirection ||
+    [...structuralDirections.keys()].some(key => !portsByDirection?.[key])
+  ) {
+    return {
+      patch: null,
+      detail: '保留接头缺少现有连接所需的方向端口。',
+    };
+  }
+
+  const replacementDefinition = getComponentById(replacementComponentId);
+  const boardMountPoint = replacementDefinition?.connectionPoints.find(
+    point => point.role === 'board-mount'
+  );
+  const boardMountCount = incidents.filter(
+    incident => incident.endpoint.role === 'board-mount'
+  ).length;
+  if (
+    boardMountCount > 0 &&
+    (!boardMountPoint || boardMountCount > (boardMountPoint.capacity ?? 1))
+  ) {
+    return {
+      patch: null,
+      detail: '板件挂载数量超过单个接头容量，不能无损合并。',
+    };
+  }
+
+  const updatedConnections = incidents.map(incident => {
+    const pointId = incident.endpoint.role === 'board-mount'
+      ? boardMountPoint!.id
+      : portsByDirection![incident.directionKey!];
+    return {
+      ...incident.connection,
+      [incident.side]: {
+        ...incident.connection[incident.side],
+        componentId: keeper.instanceId,
+        pointId,
+      },
+    };
+  });
+  if (updatedConnections.some(connection => (
+    connection.source.componentId === connection.target.componentId
+  ))) {
+    return {
+      patch: null,
+      detail: '合并会产生接头自连接，必须人工处理。',
+    };
+  }
+
+  const patch: TopologyPatch = {
+    addComponents: [],
+    updateComponents: [{
+      instanceId: keeper.instanceId,
+      updates: {
+        componentId: replacementComponentId,
+        rotation: replacementRotation,
+        properties: mergedProperties,
+      },
+    }],
+    removeComponentIds: group
+      .filter(component => component.instanceId !== keeper.instanceId)
+      .map(component => component.instanceId),
+    addConnections: [],
+    updateConnections: updatedConnections,
+    removeConnectionIds: [],
+    selectInstanceId: keeper.instanceId,
+  };
+  const projected = connectorTopologySystem.applyTopologyPatch({
+    components: input.components,
+    connections: input.connections,
+    patch,
+    normalizeAutoConnectors: false,
+  });
+  const projectedEndpoints = collectEndpoints(projected.components);
+  const projectedEndpointByKey = new Map(
+    projectedEndpoints.map(endpoint => [endpointKey(endpoint.componentId, endpoint.pointId), endpoint])
+  );
+  const updatedIds = new Set(updatedConnections.map(connection => connection.id));
+  const projectedConnectionKeys = new Map<string, string>();
+  for (const connection of projected.connections) {
+    const key = connectionKey(
+      connection.source.componentId,
+      connection.source.pointId,
+      connection.target.componentId,
+      connection.target.pointId
+    );
+    const existingId = projectedConnectionKeys.get(key);
+    if (existingId && (updatedIds.has(existingId) || updatedIds.has(connection.id))) {
+      return {
+        patch: null,
+        detail: '合并会产生重复连接记录，不能自动处理。',
+      };
+    }
+    projectedConnectionKeys.set(key, connection.id);
+  }
+  const keeperConnections = projected.connections.filter(connection =>
+    connection.source.componentId === keeper.instanceId ||
+    connection.target.componentId === keeper.instanceId
+  );
+  if (keeperConnections.some(connection => !isConnectionAligned(connection, projectedEndpointByKey))) {
+    return {
+      patch: null,
+      detail: '合并后至少一个连接点无法保持对齐。',
+    };
+  }
+  const keeperEndpointUsage = new Map<string, number>();
+  keeperConnections.forEach(connection => {
+    const pointId = connection.source.componentId === keeper.instanceId
+      ? connection.source.pointId
+      : connection.target.pointId;
+    keeperEndpointUsage.set(pointId, (keeperEndpointUsage.get(pointId) ?? 0) + 1);
+  });
+  if ([...keeperEndpointUsage].some(([pointId, count]) => {
+    const point = replacementDefinition?.connectionPoints.find(item => item.id === pointId);
+    return !point || count > (point.capacity ?? 1);
+  })) {
+    return {
+      patch: null,
+      detail: '合并后的连接数量超过接头端口容量。',
+    };
+  }
+
+  return {
+    patch,
+    detail: `可安全合并为一个${replacementDefinition?.name ?? '标准接头'}并保留全部连接。`,
+  };
+};
+
+const diffTopology = (
+  before: AuditTopologyInput,
+  after: AuditTopologyInput
+): TopologyPatch | null => {
+  const beforeComponents = new Map(
+    before.components.map(component => [component.instanceId, component])
+  );
+  const afterComponents = new Map(
+    after.components.map(component => [component.instanceId, component])
+  );
+  const beforeConnections = new Map(
+    before.connections.map(connection => [connection.id, connection])
+  );
+  const afterConnections = new Map(
+    after.connections.map(connection => [connection.id, connection])
+  );
+  const patch: TopologyPatch = {
+    addComponents: after.components.filter(
+      component => !beforeComponents.has(component.instanceId)
+    ),
+    updateComponents: after.components.flatMap(component => {
+      const previous = beforeComponents.get(component.instanceId);
+      if (!previous || JSON.stringify(previous) === JSON.stringify(component)) return [];
+      const { instanceId, ...fields } = component;
+      const updates = Object.fromEntries(
+        Object.entries(fields).filter(([key, value]) => (
+          JSON.stringify(value) !== JSON.stringify(previous[key as keyof ComponentInstance])
+        ))
+      ) as Partial<Omit<ComponentInstance, 'instanceId'>>;
+      return [{ instanceId, updates }];
+    }),
+    removeComponentIds: before.components
+      .filter(component => !afterComponents.has(component.instanceId))
+      .map(component => component.instanceId),
+    addConnections: after.connections.filter(
+      connection => !beforeConnections.has(connection.id)
+    ),
+    updateConnections: after.connections.filter(connection => {
+      const previous = beforeConnections.get(connection.id);
+      return previous && JSON.stringify(previous) !== JSON.stringify(connection);
+    }),
+    removeConnectionIds: before.connections
+      .filter(connection => !afterConnections.has(connection.id))
+      .map(connection => connection.id),
+  };
+  const hasChanges =
+    patch.addComponents.length > 0 ||
+    patch.updateComponents.length > 0 ||
+    patch.removeComponentIds.length > 0 ||
+    patch.addConnections.length > 0 ||
+    patch.updateConnections.length > 0 ||
+    patch.removeConnectionIds.length > 0;
+  return hasChanges ? patch : null;
+};
+
 class TopologyIntegritySystem {
   auditTopology(input: AuditTopologyInput): TopologyAuditReport {
     const endpoints = collectEndpoints(input.components);
@@ -401,29 +837,30 @@ class TopologyIntegritySystem {
       });
     });
 
-    for (let i = 0; i < input.components.length; i += 1) {
-      const left = input.components[i];
-      const leftDef = getComponentById(left.componentId);
-      if (leftDef?.category !== 'connector') continue;
-      for (let j = i + 1; j < input.components.length; j += 1) {
-        const right = input.components[j];
-        const rightDef = getComponentById(right.componentId);
-        if (rightDef?.category !== 'connector') continue;
-        const gap = distance(left.position, right.position);
-        if (gap > DUPLICATE_NODE_DISTANCE_CM) continue;
-        duplicateNodeComponentIds.add(left.instanceId);
-        duplicateNodeComponentIds.add(right.instanceId);
-        issues.push({
-          id: `duplicate-node:${left.instanceId}:${right.instanceId}`,
-          kind: 'duplicate-node',
-          componentIds: [left.instanceId, right.instanceId],
-          endpointRefs: [],
-          distanceCm: gap,
-          repairable: false,
-          message: `同一位置存在重复接头：${leftDef.name} 与 ${rightDef.name}。`,
-        });
-      }
-    }
+    getDuplicateNodeGroups(input.components).forEach(group => {
+      group.forEach(component => duplicateNodeComponentIds.add(component.instanceId));
+      const location = getDuplicateNodeLocation(group);
+      const assessment = createDuplicateNodeMergeAssessment(input, group);
+      const typeCounts = new Map<string, number>();
+      group.forEach(component => {
+        const name = getComponentById(component.componentId)?.name ?? component.componentId;
+        typeCounts.set(name, (typeCounts.get(name) ?? 0) + 1);
+      });
+      const typeSummary = [...typeCounts]
+        .map(([name, count]) => `${name} × ${count}`)
+        .join('、');
+      issues.push({
+        id: `duplicate-node:${group.map(component => component.instanceId).join(':')}`,
+        kind: 'duplicate-node',
+        componentIds: group.map(component => component.instanceId),
+        endpointRefs: [],
+        location,
+        distanceCm: getDuplicateNodeMaximumDistance(group),
+        repairable: Boolean(assessment.patch),
+        message: `坐标 (${location.map(value => value.toFixed(1)).join(', ')}) 附近存在 ${group.length} 个重叠接头：${typeSummary}。`,
+        detail: assessment.detail,
+      });
+    });
 
     const seenPairs = new Set<string>();
     const suggestedEndpointKeys = new Set<string>();
@@ -526,11 +963,29 @@ class TopologyIntegritySystem {
     idFactory?: (prefix: string) => string;
   }): TopologyPatch | null {
     const idFactory = input.idFactory ?? defaultIdFactory;
-    const report = this.auditTopology(input);
+    let projected: AuditTopologyInput = {
+      components: input.components,
+      connections: input.connections,
+    };
+    const maximumMergePasses = input.components.length;
+    for (let pass = 0; pass < maximumMergePasses; pass += 1) {
+      const repairableDuplicate = getDuplicateNodeGroups(projected.components)
+        .map(group => createDuplicateNodeMergeAssessment(projected, group))
+        .find(assessment => assessment.patch);
+      if (!repairableDuplicate?.patch) break;
+      projected = connectorTopologySystem.applyTopologyPatch({
+        components: projected.components,
+        connections: projected.connections,
+        patch: repairableDuplicate.patch,
+        normalizeAutoConnectors: false,
+      });
+    }
+
+    const report = this.auditTopology(projected);
     const addConnections: Connection[] = [];
     const removeConnectionIds = new Set<string>();
     const updateComponents: TopologyPatch['updateComponents'] = [];
-    const endpoints = collectEndpoints(input.components);
+    const endpoints = collectEndpoints(projected.components);
     const endpointByKey = new Map(
       endpoints.map(endpoint => [
         endpointKey(endpoint.componentId, endpoint.pointId),
@@ -571,8 +1026,8 @@ class TopologyIntegritySystem {
           return;
         }
         const update = findSafeNearMissTranslation({
-          components: input.components,
-          connections: input.connections,
+          components: projected.components,
+          connections: projected.connections,
           left,
           right,
         });
@@ -582,7 +1037,7 @@ class TopologyIntegritySystem {
         usedNearMissEndpointKeys.add(leftKey);
         usedNearMissEndpointKeys.add(rightKey);
 
-        const alreadyRecorded = input.connections.some(connection =>
+        const alreadyRecorded = projected.connections.some(connection =>
           connectionKey(
             connection.source.componentId,
             connection.source.pointId,
@@ -617,21 +1072,26 @@ class TopologyIntegritySystem {
     });
 
     if (
-      addConnections.length === 0 &&
-      removeConnectionIds.size === 0 &&
-      updateComponents.length === 0
+      addConnections.length > 0 ||
+      removeConnectionIds.size > 0 ||
+      updateComponents.length > 0
     ) {
-      return null;
+      projected = connectorTopologySystem.applyTopologyPatch({
+        components: projected.components,
+        connections: projected.connections,
+        patch: {
+          addComponents: [],
+          updateComponents,
+          removeComponentIds: [],
+          addConnections,
+          updateConnections: [],
+          removeConnectionIds: [...removeConnectionIds],
+        },
+        normalizeAutoConnectors: false,
+      });
     }
 
-    return {
-      addComponents: [],
-      updateComponents,
-      removeComponentIds: [],
-      addConnections,
-      updateConnections: [],
-      removeConnectionIds: [...removeConnectionIds],
-    };
+    return diffTopology(input, projected);
   }
 
   resolvePlacementContacts(

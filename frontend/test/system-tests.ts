@@ -465,6 +465,203 @@ run('hydrates topology audit without silent repair and repairs it as one history
   assert.equal(useDesignStore.getState().connections.length, 1);
 });
 
+run('groups co-located connectors into one actionable topology issue', () => {
+  const components = [
+    component('duplicate-c', 'connector_5way', [12, 40, -8]),
+    component('duplicate-a', 'connector_5way', [12, 40, -8]),
+    component('duplicate-b', 'connector_5way', [12, 40, -8]),
+  ];
+  const duplicateIssues = auditTopology({ components, connections: [] })
+    .issues.filter(issue => issue.kind === 'duplicate-node');
+
+  assert.equal(duplicateIssues.length, 1);
+  assert.deepEqual(
+    duplicateIssues[0].componentIds,
+    ['duplicate-a', 'duplicate-b', 'duplicate-c']
+  );
+  assert.deepEqual(duplicateIssues[0].location, [12, 40, -8]);
+  assert.match(duplicateIssues[0].message, /3 个重叠接头/);
+  assert.equal(duplicateIssues[0].repairable, true);
+
+  const guide = assemblyStepSystem.generateAssemblyGuide({
+    components,
+    connections: [],
+    designName: '重复接头定位测试',
+  });
+  const guideIssue = guide.issues.find(issue => issue.id.includes('duplicate-node'));
+  assert.ok(guideIssue);
+  assert.deepEqual(guideIssue.location, [12, 40, -8]);
+  assert.match(guideIssue.detail ?? '', /可安全合并/);
+});
+
+run('safely merges duplicate connectors while retaining connection IDs and board mounts', () => {
+  const components = [
+    component('merge-a', 'connector_5way', [0, 0, -20]),
+    component('merge-b', 'connector_5way', [0, 0, -20]),
+    component('merge-positive', 'pipe_35cm', [0, 0, 0]),
+    component('merge-negative', 'pipe_35cm', [0, 0, -40]),
+    component('merge-board', 'board_40x40', [20, 0, 0]),
+  ];
+  const connections = [
+    connection('merge-positive-id', 'merge-a', 'output3', 'merge-positive', 'start'),
+    connection('merge-negative-id', 'merge-b', 'input', 'merge-negative', 'end'),
+    {
+      ...connection('merge-board-id', 'merge-a', 'platform_mount', 'merge-board', 'corner1'),
+      type: 'board-mount',
+    },
+  ];
+  const duplicateIssue = auditTopology({ components, connections })
+    .issues.find(issue => issue.kind === 'duplicate-node');
+  assert.ok(duplicateIssue);
+  assert.equal(duplicateIssue.repairable, true);
+
+  const patch = createRepairPatch({ components, connections });
+  assert.ok(patch);
+  const repaired = connectorTopologySystem.applyTopologyPatch({
+    components,
+    connections,
+    patch,
+    normalizeAutoConnectors: false,
+  });
+
+  assert.deepEqual(
+    repaired.connections.map(item => item.id).sort(),
+    ['merge-board-id', 'merge-negative-id', 'merge-positive-id']
+  );
+  assert.equal(
+    repaired.components.filter(item => item.position.join(',') === '0,0,-20').length,
+    1
+  );
+  assert.ok(repaired.components.some(item => item.instanceId === 'merge-a'));
+  assert.equal(repaired.components.some(item => item.instanceId === 'merge-b'), false);
+  assertNoDuplicateConnectorCenters(repaired.components);
+  assertConnectionsAligned(repaired.components, repaired.connections);
+  assert.equal(
+    auditTopology(repaired).issues.some(issue => issue.kind === 'duplicate-node'),
+    false
+  );
+});
+
+run('keeps unsafe duplicate connectors unchanged with a concrete conflict reason', () => {
+  const directionConflictComponents = [
+    component('conflict-a', 'connector_5way', [0, 0, -20]),
+    component('conflict-b', 'connector_5way', [0, 0, -20]),
+    component('conflict-pipe-a', 'pipe_35cm', [0, 0, 0]),
+    component('conflict-pipe-b', 'pipe_35cm', [0, 0, 0]),
+  ];
+  const directionConflictConnections = [
+    connection('conflict-a-id', 'conflict-a', 'output3', 'conflict-pipe-a', 'start'),
+    connection('conflict-b-id', 'conflict-b', 'output3', 'conflict-pipe-b', 'start'),
+  ];
+  const directionIssue = auditTopology({
+    components: directionConflictComponents,
+    connections: directionConflictConnections,
+  }).issues.find(issue => issue.kind === 'duplicate-node');
+  assert.ok(directionIssue);
+  assert.equal(directionIssue.repairable, false);
+  assert.match(directionIssue.detail ?? '', /同时占用/);
+  assert.equal(
+    createRepairPatch({
+      components: directionConflictComponents,
+      connections: directionConflictConnections,
+    }),
+    null
+  );
+
+  const groupedA = component('grouped-a', 'connector_5way', [40, 0, 0]);
+  const groupedB = component('grouped-b', 'connector_5way', [40, 0, 0]);
+  groupedA.properties = { assemblyGroupId: 'frame-a' };
+  groupedB.properties = { assemblyGroupId: 'frame-b' };
+  const propertyIssue = auditTopology({
+    components: [groupedA, groupedB],
+    connections: [],
+  }).issues.find(issue => issue.kind === 'duplicate-node');
+  assert.ok(propertyIssue);
+  assert.equal(propertyIssue.repairable, false);
+  assert.match(propertyIssue.detail ?? '', /冲突属性/);
+
+  const unsupportedIssue = auditTopology({
+    components: [
+      component('unsupported-a', 'connector_cross', [80, 0, 0]),
+      component('unsupported-b', 'connector_cross', [80, 0, 0]),
+    ],
+    connections: [],
+  }).issues.find(issue => issue.kind === 'duplicate-node');
+  assert.ok(unsupportedIssue);
+  assert.equal(unsupportedIssue.repairable, false);
+  assert.match(unsupportedIssue.detail ?? '', /非标准拓扑接头/);
+
+  const boardComponents = [
+    component('capacity-a', 'connector_5way', [120, 0, 0]),
+    component('capacity-b', 'connector_5way', [120, 0, 0]),
+    ...Array.from({ length: 5 }, (_, index) =>
+      component(`capacity-board-${index}`, 'board_40x40', [140, 0, 20])
+    ),
+  ];
+  const boardConnections = Array.from({ length: 5 }, (_, index) => ({
+    ...connection(
+      `capacity-connection-${index}`,
+      index < 3 ? 'capacity-a' : 'capacity-b',
+      'platform_mount',
+      `capacity-board-${index}`,
+      'corner1'
+    ),
+    type: 'board-mount',
+  }));
+  const capacityIssue = auditTopology({
+    components: boardComponents,
+    connections: boardConnections,
+  }).issues.find(issue => issue.kind === 'duplicate-node');
+  assert.ok(capacityIssue);
+  assert.equal(capacityIssue.repairable, false);
+  assert.match(capacityIssue.detail ?? '', /挂载数量超过/);
+});
+
+run('records duplicate connector repair as one undoable and redoable history entry', () => {
+  const store = useDesignStore.getState();
+  store.reset();
+  const duplicateDesign: Design = {
+    name: 'duplicate-connector-history',
+    version: '1.0',
+    status: 'draft',
+    components: [
+      component('history-a', 'connector_5way', [0, 0, -20]),
+      component('history-b', 'connector_5way', [0, 0, -20]),
+      component('history-positive', 'pipe_35cm', [0, 0, 0]),
+      component('history-negative', 'pipe_35cm', [0, 0, -40]),
+    ],
+    connections: [
+      connection('history-positive-id', 'history-a', 'output3', 'history-positive', 'start'),
+      connection('history-negative-id', 'history-b', 'input', 'history-negative', 'end'),
+    ],
+    materials: {},
+    settings: {
+      gridSize: 20,
+      showConnections: false,
+      viewMode: 'realistic',
+    },
+  };
+
+  store.hydrateDesign(duplicateDesign);
+  let state = useDesignStore.getState();
+  assert.equal(state.historyIndex, 0);
+  assert.equal(state.repairTopology(), true);
+  state = useDesignStore.getState();
+  assert.equal(state.historyIndex, 1);
+  assert.equal(state.components.filter(item => item.componentId === 'connector_5way').length, 1);
+  assert.ok(state.components.some(item => item.instanceId === 'history-a'));
+  state.undo();
+  assert.equal(
+    useDesignStore.getState().components.filter(item => item.componentId === 'connector_5way').length,
+    2
+  );
+  state.redo();
+  assert.equal(
+    useDesignStore.getState().components.filter(item => item.componentId === 'connector_5way').length,
+    1
+  );
+});
+
 run('predicts and commits an exact bridge to an existing connector site', () => {
   const components = [
     component('bridge-source', 'connector_5way', [0, 0, -20]),

@@ -12,6 +12,7 @@ import {
   message,
 } from 'antd';
 import {
+  AimOutlined,
   CheckCircleFilled,
   DownloadOutlined,
   EyeOutlined,
@@ -22,13 +23,18 @@ import {
 } from '@ant-design/icons';
 import { saveAs } from 'file-saver';
 import { useDesignStore } from '../../stores/designStore';
+import { useInteractionStore } from '../../stores/interactionStore';
 import { generateAssemblyGuide } from '../../systems/AssemblyStepSystem';
 import { exportManager } from '../../systems/ExportManager';
 import AssemblyGuideViewer from './AssemblyGuideViewer';
 
 const { Text, Title } = Typography;
 
-const AssemblyGuidePanel: React.FC = () => {
+interface AssemblyGuidePanelProps {
+  onLocateIssue?: () => void;
+}
+
+const AssemblyGuidePanel: React.FC<AssemblyGuidePanelProps> = ({ onLocateIssue }) => {
   const {
     components,
     connections,
@@ -36,6 +42,9 @@ const AssemblyGuidePanel: React.FC = () => {
     inventory,
     repairTopology,
   } = useDesignStore();
+  const selectComponents = useInteractionStore(state => state.selectComponents);
+  const setMode = useInteractionStore(state => state.setMode);
+  const setActiveTool = useInteractionStore(state => state.setActiveTool);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ percent: number; message: string } | null>(null);
@@ -55,6 +64,15 @@ const AssemblyGuidePanel: React.FC = () => {
     if (repairTopology()) message.success('连接问题已修复，请重新检查教程。');
     else message.warning('当前没有可以自动修复的问题。');
   }, [repairTopology]);
+
+  const handleLocateIssue = useCallback((componentIds: string[]) => {
+    if (componentIds.length === 0) return;
+    setMode('select');
+    setActiveTool('select');
+    selectComponents(componentIds);
+    onLocateIssue?.();
+    message.info(`已选中 ${componentIds.length} 个问题组件`);
+  }, [onLocateIssue, selectComponents, setActiveTool, setMode]);
 
   const handleExport = useCallback(async () => {
     if (!guide || exporting) return;
@@ -118,12 +136,33 @@ const AssemblyGuidePanel: React.FC = () => {
           className="assembly-guide-issue-list"
           dataSource={result.issues}
           renderItem={issue => (
-            <List.Item>
-              <Space align="start">
+            <List.Item className="assembly-guide-issue-item">
+              <Space align="start" className="assembly-guide-issue-content">
                 <WarningFilled style={{ color: '#FF4D4F', marginTop: 4 }} />
                 <div>
                   <div>{issue.message}</div>
-                  {issue.repairable ? <Tag color="orange">可一键修复</Tag> : <Tag color="red">需要手动处理</Tag>}
+                  {issue.detail ? (
+                    <Text type="secondary" className="assembly-guide-issue-detail">
+                      {issue.detail}
+                    </Text>
+                  ) : null}
+                  <div className="assembly-guide-issue-actions">
+                    {issue.repairable ? (
+                      <Tag color="orange">
+                        {issue.id.includes('duplicate-node') ? '可一键安全合并' : '可一键修复'}
+                      </Tag>
+                    ) : <Tag color="red">需要手动处理</Tag>}
+                    {issue.componentIds.length > 0 ? (
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<AimOutlined />}
+                        onClick={() => handleLocateIssue(issue.componentIds)}
+                      >
+                        定位并选中
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </Space>
             </List.Item>

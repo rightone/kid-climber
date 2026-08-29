@@ -506,14 +506,20 @@ const ComponentLibrary: React.FC<ComponentLibraryProps> = ({ onPlacementStart })
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}>
+    <div
+      className="component-library"
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+    >
+      <div
+        className="component-library-header"
+        style={{ padding: '10px 12px', borderBottom: '1px solid #f0f0f0' }}
+      >
         <div style={{ color: '#0f172a', fontWeight: 800, fontSize: 14 }}>选择搭建任务</div>
         <div style={{ color: '#64748b', fontSize: 11, lineHeight: 1.45, marginTop: 3 }}>
           选择要完成的结构，系统会检查条件并显示全部安装位。
         </div>
       </div>
-      <div style={{ flex: 1, overflow: 'auto', padding: '10px 12px' }}>
+      <div className="component-library-list" style={{ flex: 1, padding: '10px 12px' }}>
         <div style={{ color: '#15803d', fontWeight: 800, fontSize: 11, marginBottom: 7 }}>
           现在可以做
         </div>

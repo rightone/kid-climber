@@ -70,6 +70,10 @@ const MainLayout: React.FC = () => {
     setComponentLibraryOpen(false);
   }, []);
 
+  const closeProjectPanel = useCallback(() => {
+    setProjectPanelOpen(false);
+  }, []);
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -84,8 +88,12 @@ const MainLayout: React.FC = () => {
     { key: 'materials', label: '材料', children: <MaterialPanel /> },
     { key: 'cost', label: '成本', children: <MaterialCostPanel /> },
     { key: 'analysis', label: '分析', children: <StructuralAnalysisPanel /> },
-    { key: 'assembly-guide', label: '搭建教程', children: <AssemblyGuidePanel /> },
-  ], []);
+    {
+      key: 'assembly-guide',
+      label: '搭建教程',
+      children: <AssemblyGuidePanel onLocateIssue={closeProjectPanel} />,
+    },
+  ], [closeProjectPanel]);
 
   const componentDrawerTabs = useMemo(() => [
     {
@@ -141,9 +149,12 @@ const MainLayout: React.FC = () => {
             style={{
               background: colorBgContainer,
               borderRight: '1px solid #f0f0f0',
+              minHeight: 0,
+              overflow: 'hidden',
             }}
           >
             <Tabs
+              className="component-panel-tabs"
               activeKey={componentDrawerTab}
               onChange={setComponentDrawerTab}
               items={componentDrawerTabs}
@@ -230,13 +241,15 @@ const MainLayout: React.FC = () => {
         size={COMPONENT_DRAWER_WIDTH}
         open={!isWideViewport && componentLibraryOpen}
         onClose={() => setComponentLibraryOpen(false)}
-        styles={{ body: { padding: 0 } }}
+        styles={{ body: { padding: 0, minHeight: 0, overflow: 'hidden' } }}
       >
         <Tabs
+          className="component-panel-tabs"
           activeKey={componentDrawerTab}
           onChange={setComponentDrawerTab}
           items={componentDrawerTabs}
           tabBarStyle={{ margin: 0, padding: '0 12px' }}
+          style={{ height: '100%' }}
         />
       </Drawer>
 
@@ -245,7 +258,7 @@ const MainLayout: React.FC = () => {
         placement="right"
         size={PROJECT_DRAWER_WIDTH}
         open={projectPanelOpen}
-        onClose={() => setProjectPanelOpen(false)}
+        onClose={closeProjectPanel}
         styles={{ body: { padding: 0 } }}
       >
         <Tabs
