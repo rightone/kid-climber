@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const frontendRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(frontendRoot, '..');
-const expectedVersion = '3.0.0-alpha.3';
+const expectedVersion = '3.0.0-alpha.4';
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repositoryRoot, relativePath), 'utf8');
